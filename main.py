@@ -4,7 +4,7 @@ from app.utils.id_generator import IDGenerator
 from app.utils.file_manager import FileManager
 import platform
 from datetime import datetime
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageDraw
 
 class ModernIDManager:
     def __init__(self):
@@ -14,8 +14,13 @@ class ModernIDManager:
         self.window.minsize(1100, 700)
         self.window.configure(bg='#f0f0f0')
         
-        # Load and resize application icons to exact same dimensions
-        icon_size = (16, 16)  # Smaller icons
+        # Load application icon
+        app_icon = Image.open("public/image/icon.jpg")
+        app_icon = ImageTk.PhotoImage(app_icon)
+        self.window.iconphoto(True, app_icon)
+        
+        # Load icons for Cursor and Windsurf
+        icon_size = (24, 24)
         self.cursor_icon = ImageTk.PhotoImage(
             Image.open("public/image/cursor-icon.jpg").resize(icon_size, Image.Resampling.LANCZOS)
         )
@@ -248,6 +253,50 @@ class ModernIDManager:
         about_frame = ttk.LabelFrame(settings_frame, text="About Project", padding="20")
         about_frame.pack(fill=tk.X, pady=(0, 30))
         
+        # Avatar and Project Title
+        header_frame = ttk.Frame(about_frame)
+        header_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        # Create round avatar
+        avatar_size = (100, 100)
+        round_avatar = self.create_round_image("public/image/icon.jpg", avatar_size)
+        avatar_label = ttk.Label(header_frame, image=round_avatar)
+        avatar_label.image = round_avatar  # Keep a reference
+        avatar_label.pack(pady=(0, 10))
+
+        # Developer info frame
+        dev_frame = ttk.Frame(header_frame)
+        dev_frame.pack(pady=(0, 5))
+        
+        ttk.Label(dev_frame, 
+                 text="Developed by:", 
+                 font=("Segoe UI", 11)).pack(side=tk.LEFT, padx=(0, 5))
+        
+        name_label = ttk.Label(dev_frame, 
+                             text="@Nguyenky", 
+                             style="Link.TLabel",
+                             cursor="hand2")
+        name_label.pack(side=tk.LEFT)
+        name_label.bind("<Button-1>", lambda e: self.open_website("https://lappyhacking.onrender.com/"))
+
+        # Website with modern styling
+        web_frame = ttk.Frame(header_frame)
+        web_frame.pack(pady=(5, 15))
+        
+        ttk.Label(web_frame, 
+                text="Official website:", 
+                font=("Segoe UI", 11)).pack(side=tk.LEFT, padx=(0, 5))
+                
+        website_label = ttk.Label(web_frame, 
+                                text="https://lappyhacking.onrender.com/",
+                                style="Link.TLabel",
+                                cursor="hand2")
+        website_label.pack(side=tk.LEFT)
+        website_label.bind("<Button-1>", lambda e: self.open_website("https://lappyhacking.onrender.com/"))
+        
+        # Separator after profile
+        ttk.Separator(about_frame, orient="horizontal").pack(fill=tk.X, pady=20)
+        
         # Project description
         description = (
             "Công cụ Chỉnh sửa ID cho Cursor IDE được thiết kế nhằm hỗ trợ người dùng quản lý và "
@@ -294,6 +343,23 @@ class ModernIDManager:
         website_label.pack(side=tk.LEFT, padx=5)
         website_label.bind("<Button-1>", lambda e: self.open_website("https://lappyhacking.onrender.com/"))
     
+    def create_round_image(self, image_path, size):
+        # Open and resize image
+        img = Image.open(image_path)
+        img = img.resize(size, Image.Resampling.LANCZOS)
+        
+        # Create a round mask
+        mask = Image.new('L', size, 0)
+        draw = ImageDraw.Draw(mask)
+        draw.ellipse((0, 0, size[0], size[1]), fill=255)
+        
+        # Apply mask to create round image
+        output = Image.new('RGBA', size, (0, 0, 0, 0))
+        output.paste(img, (0, 0))
+        output.putalpha(mask)
+        
+        return ImageTk.PhotoImage(output)
+
     def browse_folder(self, app_name):
         from tkinter import filedialog
         folder_path = filedialog.askdirectory(title=f"Select storage folder for {app_name}")
