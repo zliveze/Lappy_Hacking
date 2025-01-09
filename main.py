@@ -89,12 +89,27 @@ class ModernIDManager:
         main_container = ttk.Frame(self.window, padding="20")
         main_container.pack(fill=tk.BOTH, expand=True)
         
-        # Header Section with title
+        # Header Section with title and logo
         header_frame = ttk.Frame(main_container)
         header_frame.pack(fill=tk.X, pady=(0, 20))
         
-        # Title
-        ttk.Label(header_frame, text="Lappy Hacking", style="Title.TLabel").pack(side=tk.LEFT)
+        # Left side of header with logo and title
+        left_header = ttk.Frame(header_frame)
+        left_header.pack(side=tk.LEFT)
+        
+        # Create and add round logo
+        try:
+            logo_size = (40, 40)
+            round_logo = self.create_round_image("public/image/icon.jpg", logo_size)
+            logo_label = ttk.Label(left_header, image=round_logo)
+            logo_label.image = round_logo  # Keep a reference
+            logo_label.pack(side=tk.LEFT, padx=(0, 15))
+        except Exception as e:
+            print(f"Error loading logo: {e}")
+        
+        # Title with modern font
+        title_label = ttk.Label(left_header, text="Lappy Hacking", style="Title.TLabel")
+        title_label.pack(side=tk.LEFT)
         
         # System info and version on the right
         info_frame = ttk.Frame(header_frame)
@@ -104,6 +119,7 @@ class ModernIDManager:
         system_info = self.get_system_info()
         version_info = "Version 2.0 (Released: Jan 07, 2025)"
         
+        # Add modern styling to system info
         ttk.Label(info_frame, text=system_info, style="Subtitle.TLabel").pack(anchor="e", pady=(0, 2))
         ttk.Label(info_frame, text=version_info, style="Subtitle.TLabel").pack(anchor="e")
         
@@ -113,7 +129,7 @@ class ModernIDManager:
         
         # Main tab with more padding
         main_tab = ttk.Frame(notebook, padding="10")
-        notebook.add(main_tab, text="Chức năng chính")
+        notebook.add(main_tab, text="ID Generator")
         
         # Initialize CleanupManager
         self.cleanup_manager = CleanupManager(self.window, notebook)
@@ -123,7 +139,7 @@ class ModernIDManager:
         
         # Settings and About tab - Moved to last
         settings_tab = ttk.Frame(notebook, padding="10")
-        notebook.add(settings_tab, text="Cài đặt")
+        notebook.add(settings_tab, text="Settings")
         
         # Setup all tabs
         self.setup_main_tab(main_tab)
@@ -169,66 +185,163 @@ class ModernIDManager:
         main_content = ttk.Frame(parent)
         main_content.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
+        # Quick Actions Panel
+        quick_actions = ttk.LabelFrame(main_content, text="Thao tác nhanh", padding="10")
+        quick_actions.pack(fill=tk.X, pady=(0, 15))
+        
+        # Quick actions buttons with icons - Left side
+        actions_left = ttk.Frame(quick_actions)
+        actions_left.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        # Quick fix button
+        quick_fix_btn = ttk.Button(actions_left, 
+                                text="⚡ Sửa lỗi nhanh",
+                                command=lambda: [self.generate_ids(), self.save_ids()],
+                                style="Action.TButton", 
+                                width=20)
+        quick_fix_btn.pack(side=tk.LEFT, padx=5)
+        
+        ttk.Label(actions_left, 
+                text="→",
+                style="Bold.TLabel").pack(side=tk.LEFT, padx=5)
+        
+        ttk.Label(actions_left, 
+                text="Tự động tạo và lưu ID mới",
+                style="Info.TLabel").pack(side=tk.LEFT, padx=5)
+        
+        # Status information - Right side
+        status_right = ttk.Frame(quick_actions)
+        status_right.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # App status
+        app_status = ttk.Frame(status_right)
+        app_status.pack(fill=tk.X, pady=2)
+        ttk.Label(app_status, 
+                text="🎯 Ứng dụng: ",
+                style="Bold.TLabel").pack(side=tk.LEFT)
+        self.app_status_label = ttk.Label(app_status,
+                                      text="Cursor",
+                                      style="Info.TLabel")
+        self.app_status_label.pack(side=tk.LEFT)
+        
+        # ID status
+        id_status = ttk.Frame(status_right)
+        id_status.pack(fill=tk.X, pady=2)
+        ttk.Label(id_status,
+                text="💫 Trạng thái: ",
+                style="Bold.TLabel").pack(side=tk.LEFT)
+        self.quick_status_label = ttk.Label(id_status,
+                                        text="Chưa tạo ID",
+                                        style="Info.TLabel")
+        self.quick_status_label.pack(side=tk.LEFT)
+        
         # Left Panel - Controls (narrower)
         left_panel = ttk.LabelFrame(main_content, text="Bảng điều khiển", padding="15")
         left_panel.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 20))
         
-        # Application Selection
+        # Application Selection with modern styling
         select_frame = ttk.LabelFrame(left_panel, text="Chọn ứng dụng", padding="10")
         select_frame.pack(fill=tk.X, pady=(0, 15))
         
         self.app_var = tk.StringVar(value="Cursor")
         
-        # Radio buttons with icons
+        # Radio buttons with icons and better spacing
         for app, icon in [("Cursor", self.cursor_icon), ("Windsurf", self.windsurf_icon)]:
-            frame = ttk.Frame(select_frame)
-            frame.pack(fill=tk.X, pady=5)
-            rb = ttk.Radiobutton(frame, text=app, value=app, 
+            app_frame = ttk.Frame(select_frame)
+            app_frame.pack(fill=tk.X, pady=5)
+            
+            rb = ttk.Radiobutton(app_frame, text=app, value=app,
                                variable=self.app_var, command=self.on_app_change,
                                width=15)
             rb.pack(side=tk.LEFT)
-            tk.Label(frame, image=icon, bg='#f0f0f0').pack(side=tk.LEFT)
+            
+            icon_label = tk.Label(app_frame, image=icon, bg='#f0f0f0')
+            icon_label.pack(side=tk.LEFT)
         
-        # Action Buttons with more spacing
-        for text, command in [
-            ("Tạo ID mới", self.generate_ids),
-            ("Đọc ID hiện tại", self.read_current_ids),
-            ("Lưu ID", self.save_ids),
-            ("Tạo Backup", self.create_backup)
-        ]:
-            btn = ttk.Button(left_panel, text=text, command=command, style="Action.TButton")
+        # Action Buttons with icons - Changed order as requested
+        actions = [
+            ("💫 Tạo ID mới", self.generate_ids),
+            ("💾 Lưu ID", self.save_ids),
+            ("📖 Đọc ID hiện tại", self.read_current_ids),
+            ("📦 Tạo Backup", self.create_backup)
+        ]
+        
+        for text, command in actions:
+            btn = ttk.Button(left_panel, text=text, command=command,
+                           style="Action.TButton", width=20)
             btn.pack(fill=tk.X, pady=5)
         
-        # Right Panel - ID Information (wider)
+        # Right Panel - ID Information with card view
         right_panel = ttk.LabelFrame(main_content, text="Thông tin ID", padding="15")
         right_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
-        # ID Display Area with better spacing
+        # Status indicator
+        status_frame = ttk.Frame(right_panel)
+        status_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        self.status_indicator = ttk.Label(status_frame, text="⭕ Chưa tạo ID",
+                                        style="Status.TLabel")
+        self.status_indicator.pack(side=tk.LEFT)
+        
+        # ID Display Area with card-like design
         self.id_labels = {}
         id_types = {
-            "Machine ID": "telemetry.machineId",
-            "SQM ID": "telemetry.sqmId",
-            "Device ID": "telemetry.devDeviceId",
-            "MAC Machine ID": "telemetry.macMachineId"
+            "Machine ID": ("🔷 telemetry.machineId", "telemetry.machineId"),
+            "SQM ID": ("🔶 telemetry.sqmId", "telemetry.sqmId"),
+            "Device ID": ("🔴 telemetry.devDeviceId", "telemetry.devDeviceId"),
+            "MAC Machine ID": ("🔵 telemetry.macMachineId", "telemetry.macMachineId")
         }
         
-        for label_text, key in id_types.items():
-            frame = ttk.Frame(right_panel)
-            frame.pack(fill=tk.X, pady=8)
+        for label_text, (display_text, key) in id_types.items():
+            # Create card-like frame for each ID
+            card_frame = ttk.Frame(right_panel, style='Card.TFrame')
+            card_frame.pack(fill=tk.X, pady=8, padx=5)
             
-            # Label with fixed width
-            ttk.Label(frame, text=f"{label_text}:", width=15, anchor="e").pack(side=tk.LEFT, padx=(0, 15))
+            # Add subtle border
+            card_inner = ttk.Frame(card_frame, padding=10)
+            card_inner.pack(fill=tk.X, expand=True)
             
-            # ID value
-            id_label = ttk.Label(frame, text="Not generated", style="ID.TLabel")
-            id_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            # Title with icon
+            ttk.Label(card_inner, text=display_text,
+                     style="Bold.TLabel").pack(side=tk.LEFT)
+            
+            # ID value with monospace font
+            id_label = ttk.Label(card_inner, text="Not generated",
+                               style="ID.TLabel")
+            id_label.pack(side=tk.LEFT, padx=15)
             self.id_labels[key] = id_label
             
-            # Copy button
-            copy_btn = ttk.Button(frame, text="Copy", width=8,
-                              command=lambda k=key: self.copy_to_clipboard(k))
-            copy_btn.pack(side=tk.RIGHT, padx=(15, 0))
-            
+            # Copy button with icon
+            copy_btn = ttk.Button(card_inner, text="📋 Copy",
+                                command=lambda k=key: self.copy_to_clipboard(k),
+                                style="Action.TButton", width=10)
+            copy_btn.pack(side=tk.RIGHT)
+        
+        # Add separator before guide
+        ttk.Separator(right_panel, orient="horizontal").pack(fill=tk.X, pady=15)
+        
+        # User Guide Section
+        guide_frame = ttk.LabelFrame(right_panel, text="Hướng dẫn sử dụng", padding="15")
+        guide_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        guide_text = """🎯 Để sửa lỗi "Too many trial account on this machine":
+- Bước 1: Dọn dẹp dữ liệu tại "Dọn Dẹp"
+- Bước 2: Tạo ID mới tại "Bảng điều khiển"
+- Bước 3: Lưu ID mới tại "Bảng điều khiển"
+
+📌 Các thao tác khác:
+• Xem ID hiện tại: Click "Đọc ID hiện tại"
+• Sao lưu ID: Click "Tạo Backup"
+
+💡 Tip: Click vào nút Copy bên cạnh mỗi ID để sao chép"""
+
+        guide_label = ttk.Label(guide_frame, text=guide_text,
+                              style="Description.TLabel",
+                              justify="left",
+                              wraplength=500,
+                              font=("Segoe UI", 10))  # Increased wraplength for better readability
+        guide_label.pack(fill=tk.X, pady=5)
+    
     def setup_settings_tab(self, parent):
         # Create scrollable frame for settings content
         canvas = tk.Canvas(parent, bg='#f0f0f0')
@@ -440,6 +553,13 @@ class ModernIDManager:
     
     def on_app_change(self):
         self.current_ids = None
+        # Update app status label
+        self.app_status_label.config(text=self.app_var.get())
+        
+        # Reset status indicators
+        self.status_indicator.config(text="⭕ Chưa tạo ID")
+        self.quick_status_label.config(text="Chưa tạo ID")
+        
         # Try to read existing IDs when app changes
         try:
             self.file_manager.set_app(self.app_var.get())
@@ -463,11 +583,16 @@ class ModernIDManager:
                 else:
                     label.config(text="N/A")
             
+            # Update status indicators
+            self.status_indicator.config(text="✅ Đã tạo ID mới")
+            self.quick_status_label.config(text="Đã tạo ID mới")
             self.update_status("IDs generated successfully")
             self.update_timestamp()
             
         except Exception as e:
             messagebox.showerror("Error", str(e))
+            self.status_indicator.config(text="❌ Lỗi khi tạo ID")
+            self.quick_status_label.config(text="Lỗi khi tạo ID")
             self.update_status("Error generating IDs")
     
     def save_ids(self):
@@ -478,11 +603,17 @@ class ModernIDManager:
             app_name = self.app_var.get()
             self.file_manager.set_app(app_name)
             self.file_manager.save_ids(self.current_ids)
+            
+            # Update status indicators
+            self.status_indicator.config(text="✅ Đã lưu ID thành công")
+            self.quick_status_label.config(text="Đã lưu ID")
             messagebox.showinfo("Success", "IDs saved successfully!")
             self.update_status("IDs saved to storage")
             
         except Exception as e:
             messagebox.showerror("Error", str(e))
+            self.status_indicator.config(text="❌ Lỗi khi lưu ID")
+            self.quick_status_label.config(text="Lỗi khi lưu ID")
             self.update_status("Error saving IDs")
     
     def create_backup(self):
@@ -524,10 +655,15 @@ class ModernIDManager:
                 else:
                     label.config(text="Not found")
             
+            # Update status indicators
+            self.status_indicator.config(text="✅ Đã đọc ID hiện tại")
+            self.quick_status_label.config(text="Đã đọc ID")
             self.update_status("Current IDs loaded successfully")
             
         except Exception as e:
             messagebox.showerror("Error", str(e))
+            self.status_indicator.config(text="❌ Lỗi khi đọc ID")
+            self.quick_status_label.config(text="Lỗi khi đọc ID")
             self.update_status("Error loading current IDs")
     
     def open_website(self, url):

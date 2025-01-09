@@ -13,7 +13,7 @@ class AccountManager:
         
         # Create main tab
         self.tab = ttk.Frame(notebook, padding="10")
-        notebook.add(self.tab, text="Quản lý tài khoản")
+        notebook.add(self.tab, text="Account Manager")
         
         # Create sub-notebook for Cursor and Windsurf tabs
         self.sub_notebook = ttk.Notebook(self.tab)
@@ -99,7 +99,7 @@ class AccountManager:
         ttk.Label(stats_frame, textvariable=self.stats_vars["total_emails"], 
                  font=("Segoe UI", 10, "bold")).pack(anchor=tk.W)
         
-        ttk.Label(stats_frame, text="✅ Email đang hoạt động:").pack(anchor=tk.W)
+        ttk.Label(stats_frame, text="✅ Account đang hoạt động:").pack(anchor=tk.W)
         ttk.Label(stats_frame, textvariable=self.stats_vars["active_emails"],
                  font=("Segoe UI", 10, "bold"), foreground="green").pack(anchor=tk.W)
         

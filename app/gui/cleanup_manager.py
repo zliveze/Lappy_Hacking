@@ -14,7 +14,7 @@ class CleanupManager:
         
         # Initialize cleanup tab
         self.cleanup_tab = ttk.Frame(self.notebook, padding="20")
-        self.notebook.add(self.cleanup_tab, text="Dọn dẹp")
+        self.notebook.add(self.cleanup_tab, text="Cleanup")
         
         # App selection variable
         self.selected_app = tk.StringVar(value="Cursor")
@@ -45,7 +45,7 @@ class CleanupManager:
                  style="Header.TLabel").pack(anchor="w")
         
         ttk.Label(title_frame,
-                 text="Xóa cache và dữ liệu tạm thời để khắc phục các lỗi thường gặp",
+                 text="Lưu ý khi sử dụng tính năng này: Ứng dụng sẽ được reset lại toàn bộ dữ liệu, hãy chắc chắn rằng bạn đã sao lưu dữ liệu cần thiết trước khi sử dụng tính năng này",
                  style="Subtitle.TLabel").pack(anchor="w")
         
         # App Selection Frame
