@@ -6,6 +6,7 @@ import platform
 from datetime import datetime
 from PIL import Image, ImageTk, ImageDraw
 from app.gui.cleanup_manager import CleanupManager
+from app.gui.account_manager import AccountManager
 import os
 import sys
 
@@ -22,8 +23,8 @@ class ModernIDManager:
     def __init__(self):
         self.window = tk.Tk()
         self.window.title("Lappy Hacking")
-        self.window.geometry("1100x700")  # Increased window size
-        self.window.minsize(1100, 700)
+        self.window.geometry("1400x900")  # Increased window size
+        self.window.minsize(1400, 900)
         self.window.configure(bg='#f0f0f0')
         
         try:
@@ -116,6 +117,9 @@ class ModernIDManager:
         
         # Initialize CleanupManager
         self.cleanup_manager = CleanupManager(self.window, notebook)
+        
+        # Initialize AccountManager
+        self.account_manager = AccountManager(self.window, notebook)
         
         # Settings and About tab - Moved to last
         settings_tab = ttk.Frame(notebook, padding="10")
