@@ -24,11 +24,11 @@ a = Analysis(
     excludes=[],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
-    cipher=None,
-    noarchive=True,
+    cipher=block_cipher,
+    noarchive=False,
 )
 
-pyz = PYZ(a.pure, a.zipped_data, cipher=None)
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(
     pyz,
@@ -37,11 +37,11 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='Lappy_Ver2.0',
+    name='Lappy_Ver_2.1',
     debug=False,
     bootloader_ignore_signals=False,
-    strip=False,
-    upx=False,
+    strip=True,
+    upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,
@@ -49,6 +49,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    version='version_info.txt',
     uac_admin=False,
     icon='public/image/icon.jpg',
     manifest='manifest.xml'

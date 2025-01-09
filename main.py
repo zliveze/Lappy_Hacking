@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from app.utils.id_generator import IDGenerator
 from app.utils.file_manager import FileManager
+from app.gui.cursor_premium import CursorPremium
 import platform
 from datetime import datetime
 from PIL import Image, ImageTk, ImageDraw
@@ -9,6 +10,32 @@ from app.gui.cleanup_manager import CleanupManager
 from app.gui.account_manager import AccountManager
 import os
 import sys
+import requests
+import re
+from packaging import version
+
+def check_for_updates():
+    """Kiểm tra phiên bản mới trên GitHub"""
+    try:
+        # URL API GitHub để lấy thông tin releases
+        api_url = "https://api.github.com/repos/Letandat071/Lappy_Hacking/releases/latest"
+        response = requests.get(api_url, timeout=5)
+        if response.status_code == 200:
+            latest_release = response.json()
+            latest_version = latest_release['tag_name'].lstrip('v')  # Bỏ 'v' từ tag version nếu có
+            current_version = "2.1"  # Version hiện tại của ứng dụng
+            
+            if version.parse(latest_version) > version.parse(current_version):
+                message = f"""Đã có phiên bản mới!
+Phiên bản hiện tại: {current_version}
+Phiên bản mới: {latest_version}
+
+Bạn có muốn tải phiên bản mới không?"""
+                if messagebox.askyesno("Cập nhật mới", message):
+                    import webbrowser
+                    webbrowser.open(latest_release['html_url'])
+    except Exception as e:
+        print(f"Không thể kiểm tra cập nhật: {str(e)}")
 
 def resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller"""
@@ -76,6 +103,9 @@ class ModernIDManager:
         self.setup_ui()
         self.center_window()
         
+        # Kiểm tra cập nhật khi khởi động
+        self.window.after(1000, check_for_updates)  # Kiểm tra sau 1 giây để đảm bảo UI đã load xong
+        
     def center_window(self):
         self.window.update_idletasks()
         width = self.window.winfo_width()
@@ -117,7 +147,7 @@ class ModernIDManager:
         
         # Get system information
         system_info = self.get_system_info()
-        version_info = "Version 2.0 (Released: Jan 07, 2025)"
+        version_info = "Version 2.1 (Released: Jan 08, 2025)"
         
         # Add modern styling to system info
         ttk.Label(info_frame, text=system_info, style="Subtitle.TLabel").pack(anchor="e", pady=(0, 2))
@@ -136,6 +166,9 @@ class ModernIDManager:
         
         # Initialize AccountManager
         self.account_manager = AccountManager(self.window, notebook)
+        
+        # Initialize CursorPremium
+        self.cursor_premium = CursorPremium(self.window, notebook)
         
         # Settings and About tab - Moved to last
         settings_tab = ttk.Frame(notebook, padding="10")

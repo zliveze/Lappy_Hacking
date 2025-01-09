@@ -1,5 +1,5 @@
 pillow==11.1.0
-requests==2.32.3
+requests>=2.31.0
 selenium==4.27.1
 urllib3==2.3.0
 beautifulsoup4==4.12.3
@@ -20,3 +20,4 @@ trio-websocket==0.11.1
 wsproto==1.2.0
 PySocks==1.7.1
 websocket-client==1.8.0
+packaging>=23.2

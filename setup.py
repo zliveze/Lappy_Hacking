@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="lappy-hacking",
-    version="2.0",
+    version="2.1",
     packages=find_packages(),
     install_requires=[
         "Pillow>=9.0.0",
