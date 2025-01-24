@@ -37,13 +37,10 @@ Lappy Hacking là một công cụ đa nền tảng được thiết kế để 
 - Thông báo trạng thái rõ ràng
 
 ## 🛠 Cài đặt
-Clone repository
-```bash
-git clone https://github.com/Letandat071/Lappy_Hacking.git
-cd Lappy_Hacking
-pip install -r requirements.txt
-python main.py
-```
+
+1. Tải xuống file Lappy_Hacking.exe
+2. Chạy file để bắt đầu sử dụng
+3. Nếu Windows Defender cảnh báo, thêm ngoại lệ cho ứng dụng
 
 ## 📦 Yêu cầu hệ thống
 
@@ -100,3 +97,7 @@ Phân phối dưới giấy phép MIT. Xem `LICENSE` để biết thêm thông t
 
 - Website: [https://lappyhacking.onrender.com/](https://lappyhacking.onrender.com/)
 - GitHub: [@Letandat071](https://github.com/Letandat071)
+
+## Phiên bản
+
+Phiên bản hiện tại: 2.1.2 (2024)

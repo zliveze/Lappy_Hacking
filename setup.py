@@ -1,35 +1,36 @@
-from setuptools import setup, find_packages
+from cx_Freeze import setup, Executable
+import sys
+import os
 
-# Đọc README.md với encoding UTF-8
-with open("README.md", "r", encoding="utf-8") as fh:
-    long_description = fh.read()
+# Đường dẫn đến các files và folders cần include
+files = ['app/', 'public/']
+
+# Các thư viện cần thiết
+packages = ['tkinter', 'PIL', 'json', 'uuid', 'hashlib', 'requests', 'packaging']
+
+# Cấu hình build
+build_exe_options = {
+    "packages": packages,
+    "include_files": files,
+    "include_msvcr": True,
+}
+
+# Tạo executable
+base = None
+if sys.platform == "win32":
+    base = "Win32GUI"
 
 setup(
-    name="lappy-hacking",
-    version="2.1",
-    packages=find_packages(),
-    install_requires=[
-        "Pillow>=9.0.0",
-    ],
-    author="Nguyen Ky",
-    author_email="zliveze@gmail.com",
-    description="A tool for managing and fixing ID-related issues in development applications",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://github.com/Letandat071/Lappy_Hacking",
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-    ],
-    python_requires=">=3.6",
-    entry_points={
-        "console_scripts": [
-            "lappy-hacking=main:main",
-        ],
-    },
-    include_package_data=True,
-    package_data={
-        "": ["public/image/*"],
-    },
+    name="Lappy Hacking",
+    version="2.1.2",
+    description="ID Generator Tool",
+    options={"build_exe": build_exe_options},
+    executables=[
+        Executable(
+            "main.py",
+            base=base,
+            icon="public/image/icon.ico",
+            target_name="Lappy_Hacking.exe"
+        )
+    ]
 ) 
