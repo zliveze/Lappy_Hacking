@@ -2,12 +2,13 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from app.utils.id_generator import IDGenerator
 from app.utils.file_manager import FileManager
-from app.gui.cursor_premium import CursorPremium
+from app.utils.message_box import show_message
+from app.utils.settings_manager import SettingsManager
+from app.utils.version_info_dialog import VersionInfoDialog
 import platform
 from datetime import datetime
 from PIL import Image, ImageTk, ImageDraw
 from app.gui.cleanup_manager import CleanupManager
-from app.gui.account_manager import AccountManager
 import os
 import sys
 import requests
@@ -15,27 +16,33 @@ import re
 from packaging import version
 
 def check_for_updates():
-    """Kiểm tra phiên bản mới trên GitHub"""
+    """Kiểm tra phiên bản mới từ GitHub"""
     try:
-        # URL API GitHub để lấy thông tin releases
-        api_url = "https://api.github.com/repos/Letandat071/Lappy_Hacking/releases/latest"
-        response = requests.get(api_url, timeout=5)
+        # Phiên bản hiện tại
+        current_version = "2.1.2"
+        
+        # Lấy thông tin phiên bản mới nhất từ GitHub
+        response = requests.get(
+            "https://api.github.com/repos/Letandat071/Lappy_Hacking/releases/latest",
+            timeout=5
+        )
+        
         if response.status_code == 200:
             latest_release = response.json()
-            latest_version = latest_release['tag_name'].lstrip('v')  # Bỏ 'v' từ tag version nếu có
-            current_version = "2.1"  # Version hiện tại của ứng dụng
+            latest_tag = latest_release["tag_name"]  # Ví dụ: Lappy_version_2.1.2
             
-            if version.parse(latest_version) > version.parse(current_version):
-                message = f"""Đã có phiên bản mới!
-Phiên bản hiện tại: {current_version}
-Phiên bản mới: {latest_version}
-
-Bạn có muốn tải phiên bản mới không?"""
-                if messagebox.askyesno("Cập nhật mới", message):
-                    import webbrowser
-                    webbrowser.open(latest_release['html_url'])
+            # Trích xuất version number từ tag (lấy phần sau cùng: 2.1.2)
+            version_match = re.search(r'Lappy_version_(\d+\.\d+\.\d+)$', latest_tag)
+            if version_match:
+                latest_version = version_match.group(1)
+                if version.parse(latest_version) > version.parse(current_version):
+                    message = f"Đã có phiên bản mới: {latest_version}\nPhiên bản hiện tại của bạn: {current_version}"
+                    if messagebox.askyesno("Cập nhật mới", message + "\n\nBạn có muốn tải phiên bản mới không?"):
+                        webbrowser.open(latest_release["html_url"])
+                        
     except Exception as e:
-        print(f"Không thể kiểm tra cập nhật: {str(e)}")
+        # Log lỗi nhưng không hiển thị cho người dùng
+        print(f"Lỗi kiểm tra cập nhật: {str(e)}")
 
 def resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller"""
@@ -46,53 +53,25 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
-class ModernIDManager:
+class MainApplication(tk.Tk):
     def __init__(self):
-        self.window = tk.Tk()
-        self.window.title("Lappy Hacking")
-        self.window.geometry("1400x900")  # Increased window size
-        self.window.minsize(1400, 900)
-        self.window.configure(bg='#f0f0f0')
+        super().__init__()
+        self.title("Lappy Hacking")
+        self.geometry("1400x900")
+        self.minsize(1400, 900)
+        self.configure(bg='#D4D0C8')
         
-        try:
-            # Sử dụng đường dẫn tuyệt đối
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            icon_path = os.path.join(current_dir, "public", "image", "icon.jpg")
-            cursor_icon_path = os.path.join(current_dir, "public", "image", "cursor-icon.jpg")
-            windsurf_icon_path = os.path.join(current_dir, "public", "image", "windsurf-icon.png")
-            
-            # Load icons
-            app_icon = Image.open(icon_path)
-            app_icon = ImageTk.PhotoImage(app_icon)
-            self.window.iconphoto(True, app_icon)
-            
-            # Load other icons
-            icon_size = (24, 24)
-            self.cursor_icon = ImageTk.PhotoImage(
-                Image.open(cursor_icon_path).resize(icon_size, Image.Resampling.LANCZOS)
-            )
-            self.windsurf_icon = ImageTk.PhotoImage(
-                Image.open(windsurf_icon_path).resize(icon_size, Image.Resampling.LANCZOS)
-            )
-        except Exception as e:
-            print(f"Error loading icons: {e}")
+        # Initialize settings manager
+        self.settings_manager = SettingsManager()
         
-        # Configure style
-        self.style = ttk.Style()
-        self.style.configure("Title.TLabel", font=("Segoe UI", 24, "bold"))
-        self.style.configure("Subtitle.TLabel", font=("Segoe UI", 10))
-        self.style.configure("Header.TLabel", font=("Segoe UI", 14, "bold"))
-        self.style.configure("Info.TLabel", font=("Segoe UI", 10))
-        self.style.configure("ID.TLabel", font=("Consolas", 10), foreground="blue")
-        self.style.configure("Action.TButton", font=("Segoe UI", 10))
-        self.style.configure("Error.TLabel", font=("Segoe UI", 11), foreground="red")
-        self.style.configure("Link.TLabel", font=("Segoe UI", 10, "underline"), foreground="blue")
-        self.style.configure("Description.TLabel", font=("Segoe UI", 11), wraplength=700, justify="left")
-        self.style.configure("Version.TLabel", font=("Segoe UI", 12))
-        self.style.configure("Bold.TLabel", font=("Segoe UI", 11, "bold"))
-        self.style.configure("Status.TLabel", font=("Segoe UI", 11))
-        self.style.configure("Warning.TLabel", font=("Segoe UI", 11), foreground="orange")
-        self.style.configure("Subtitle.TLabel", font=("Segoe UI", 10), foreground="gray")
+        # Cache cho icons để tránh load lại nhiều lần
+        self._icon_cache = {}
+        
+        # Setup style ngay từ đầu
+        self._setup_styles()
+        
+        # Load icons một lần duy nhất
+        self._load_icons()
         
         # Initialize backend
         self.id_generator = IDGenerator()
@@ -103,20 +82,142 @@ class ModernIDManager:
         self.setup_ui()
         self.center_window()
         
-        # Kiểm tra cập nhật khi khởi động
-        self.window.after(1000, check_for_updates)  # Kiểm tra sau 1 giây để đảm bảo UI đã load xong
+        # Hiển thị thông báo phiên bản nếu được cấu hình
+        if self.settings_manager.get_show_version_info():
+            self.after(1000, lambda: VersionInfoDialog(self, self.settings_manager))
         
+        # Kiểm tra cập nhật sau khi UI đã load
+        self.after(2000, check_for_updates)
+        
+    def _setup_styles(self):
+        """Setup styles một lần duy nhất khi khởi tạo"""
+        self.style = ttk.Style()
+        self.style.theme_use('clam')
+        
+        # Windows 95/XP colors
+        bg_color = '#D4D0C8'
+        button_bg = '#D4D0C8'
+        button_pressed = '#808080'
+        
+        # Font families theo thứ tự ưu tiên
+        default_font = ("Tahoma", "Arial", "MS Sans Serif")
+        monospace_font = ("Consolas", "Courier New", "Courier")
+        
+        # Cấu hình styles cơ bản
+        self.style.configure(".", 
+                           background=bg_color,
+                           font=(default_font[0], 10))
+        
+        self.style.configure("TFrame", background=bg_color)
+        self.style.configure("TLabel", background=bg_color)
+        self.style.configure("TLabelframe", background=bg_color)
+        self.style.configure("TLabelframe.Label", background=bg_color)
+        
+        # Button style
+        self.style.configure("TButton",
+                           background=button_bg,
+                           relief="raised",
+                           font=(default_font[0], 10))
+        self.style.map("TButton",
+                      background=[('pressed', button_pressed),
+                                ('active', button_bg)])
+        
+        # Notebook style
+        self.style.configure("TNotebook", background=bg_color)
+        self.style.configure("TNotebook.Tab", 
+                           background=button_bg,
+                           padding=[10, 2],
+                           font=(default_font[0], 10))
+        
+        # Custom styles
+        custom_styles = {
+            "Title.TLabel": {
+                "font": (default_font[0], 26, "bold"),
+                "foreground": "#000080"  # Navy blue - Windows XP style
+            },
+            "Header.TLabel": {
+                "font": (default_font[0], 16, "bold"),
+                "foreground": "#003366"  # Dark blue
+            },
+            "Info.TLabel": {
+                "font": (default_font[0], 10)
+            },
+            "ID.TLabel": {
+                "font": (monospace_font[0], 11),
+                "foreground": "#0066CC"  # Bright blue
+            },
+            "Action.TButton": {
+                "font": (default_font[0], 10)
+            },
+            "Error.TLabel": {
+                "font": (default_font[0], 10),
+                "foreground": "#CC0000"  # Dark red
+            },
+            "Link.TLabel": {
+                "font": (default_font[0], 10, "underline"),
+                "foreground": "#0066CC"  # Bright blue
+            },
+            "Description.TLabel": {
+                "font": (default_font[0], 10),
+                "wraplength": 700,
+                "justify": "left"
+            },
+            "Bold.TLabel": {
+                "font": (default_font[0], 10, "bold")
+            },
+            "Status.TLabel": {
+                "font": (default_font[0], 10)
+            },
+            "Warning.TLabel": {
+                "font": (default_font[0], 10),
+                "foreground": "#FF6600"  # Orange
+            },
+            "Subtitle.TLabel": {
+                "font": (default_font[0], 10),
+                "foreground": "#666666"  # Gray
+            }
+        }
+        
+        for style_name, config in custom_styles.items():
+            self.style.configure(style_name, background=bg_color, **config)
+
+    def _load_icons(self):
+        """Load tất cả icons một lần và cache lại"""
+        try:
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            icon_paths = {
+                "app": os.path.join(current_dir, "public", "image", "icon.jpg"),
+                "cursor": os.path.join(current_dir, "public", "image", "cursor-icon.jpg"),
+                "windsurf": os.path.join(current_dir, "public", "image", "windsurf-icon.png"),
+                "aide": os.path.join(current_dir, "public", "image", "aide.png")
+            }
+            
+            # Load app icon
+            app_icon = Image.open(icon_paths["app"])
+            self.iconphoto(True, ImageTk.PhotoImage(app_icon))
+            
+            # Load và cache các icon khác
+            icon_size = (24, 24)
+            for name, path in icon_paths.items():
+                if name != "app":
+                    img = Image.open(path)
+                    img = img.resize(icon_size, Image.Resampling.LANCZOS)
+                    self._icon_cache[name] = ImageTk.PhotoImage(img)
+                    
+        except Exception as e:
+            print(f"Error loading icons: {e}")
+
     def center_window(self):
-        self.window.update_idletasks()
-        width = self.window.winfo_width()
-        height = self.window.winfo_height()
-        x = (self.window.winfo_screenwidth() // 2) - (width // 2)
-        y = (self.window.winfo_screenheight() // 2) - (height // 2)
-        self.window.geometry(f"{width}x{height}+{x}+{y}")
+        self.update_idletasks()
+        width = self.winfo_width()
+        height = self.winfo_height()
+        x = (self.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.winfo_screenheight() // 2) - (height // 2)
+        self.geometry(f"{width}x{height}+{x}+{y}")
         
     def setup_ui(self):
         # Main container with padding
-        main_container = ttk.Frame(self.window, padding="20")
+        main_container = ttk.Frame(self, padding="20")
         main_container.pack(fill=tk.BOTH, expand=True)
         
         # Header Section with title and logo
@@ -147,7 +248,7 @@ class ModernIDManager:
         
         # Get system information
         system_info = self.get_system_info()
-        version_info = "Version 2.1 (Released: Jan 08, 2025)"
+        version_info = "Version 2.1.2 (Released: Jan 23, 2025)"
         
         # Add modern styling to system info
         ttk.Label(info_frame, text=system_info, style="Subtitle.TLabel").pack(anchor="e", pady=(0, 2))
@@ -162,13 +263,7 @@ class ModernIDManager:
         notebook.add(main_tab, text="ID Generator")
         
         # Initialize CleanupManager
-        self.cleanup_manager = CleanupManager(self.window, notebook)
-        
-        # Initialize AccountManager
-        self.account_manager = AccountManager(self.window, notebook)
-        
-        # Initialize CursorPremium
-        self.cursor_premium = CursorPremium(self.window, notebook)
+        self.cleanup_manager = CleanupManager(self, notebook)
         
         # Settings and About tab - Moved to last
         settings_tab = ttk.Frame(notebook, padding="10")
@@ -279,7 +374,7 @@ class ModernIDManager:
         self.app_var = tk.StringVar(value="Cursor")
         
         # Radio buttons with icons and better spacing
-        for app, icon in [("Cursor", self.cursor_icon), ("Windsurf", self.windsurf_icon)]:
+        for app, icon in [("Cursor", self._icon_cache["cursor"]), ("Windsurf", self._icon_cache["windsurf"]), ("AIDE", self._icon_cache["aide"])]:
             app_frame = ttk.Frame(select_frame)
             app_frame.pack(fill=tk.X, pady=5)
             
@@ -450,6 +545,21 @@ class ModernIDManager:
         ttk.Label(windsurf_frame, textvariable=self.windsurf_status_var,
                  foreground="green" if self.file_manager.path_exists("Windsurf") else "red").pack(side=tk.LEFT, padx=5)
         
+        # AIDE Path
+        aide_frame = ttk.Frame(paths_frame)
+        aide_frame.pack(fill=tk.X, pady=(0, 10))
+        ttk.Label(aide_frame, text="AIDE:", width=10).pack(side=tk.LEFT)
+        self.aide_path_var = tk.StringVar(value=self.file_manager.get_storage_path("AIDE"))
+        aide_entry = ttk.Entry(aide_frame, textvariable=self.aide_path_var, width=50)
+        aide_entry.pack(side=tk.LEFT, padx=5)
+        ttk.Button(aide_frame, text="Browse", 
+                  command=lambda: self.browse_folder("AIDE")).pack(side=tk.LEFT)
+        
+        # Path status for AIDE
+        self.aide_status_var = tk.StringVar()
+        ttk.Label(aide_frame, textvariable=self.aide_status_var,
+                 foreground="green" if self.file_manager.path_exists("AIDE") else "red").pack(side=tk.LEFT, padx=5)
+        
         # Update status indicators
         self.update_path_status()
         
@@ -571,8 +681,10 @@ class ModernIDManager:
             self.file_manager.set_custom_path(app_name, folder_path)
             if app_name == "Cursor":
                 self.cursor_path_var.set(self.file_manager.get_storage_path(app_name))
-            else:
+            elif app_name == "Windsurf":
                 self.windsurf_path_var.set(self.file_manager.get_storage_path(app_name))
+            else:
+                self.aide_path_var.set(self.file_manager.get_storage_path(app_name))
             self.update_path_status()
     
     def update_path_status(self):
@@ -583,6 +695,10 @@ class ModernIDManager:
         # Update Windsurf status
         windsurf_exists = self.file_manager.path_exists("Windsurf")
         self.windsurf_status_var.set("✓ Found" if windsurf_exists else "✗ Not found")
+        
+        # Update AIDE status
+        aide_exists = self.file_manager.path_exists("AIDE")
+        self.aide_status_var.set("✓ Found" if aide_exists else "✗ Not found")
     
     def on_app_change(self):
         self.current_ids = None
@@ -623,7 +739,7 @@ class ModernIDManager:
             self.update_timestamp()
             
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            show_message(self, "Error", str(e), "error")
             self.status_indicator.config(text="❌ Lỗi khi tạo ID")
             self.quick_status_label.config(text="Lỗi khi tạo ID")
             self.update_status("Error generating IDs")
@@ -640,11 +756,11 @@ class ModernIDManager:
             # Update status indicators
             self.status_indicator.config(text="✅ Đã lưu ID thành công")
             self.quick_status_label.config(text="Đã lưu ID")
-            messagebox.showinfo("Success", "IDs saved successfully!")
+            show_message(self, "Success", "IDs saved successfully!", "success")
             self.update_status("IDs saved to storage")
             
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            show_message(self, "Error", str(e), "error")
             self.status_indicator.config(text="❌ Lỗi khi lưu ID")
             self.quick_status_label.config(text="Lỗi khi lưu ID")
             self.update_status("Error saving IDs")
@@ -654,17 +770,17 @@ class ModernIDManager:
             app_name = self.app_var.get()
             self.file_manager.set_app(app_name)
             backup_path = self.file_manager.create_backup()
-            messagebox.showinfo("Success", f"Backup created at:\n{backup_path}")
+            show_message(self, "Success", f"Backup created at:\n{backup_path}", "success")
             self.update_status("Backup created successfully")
             
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            show_message(self, "Error", str(e), "error")
             self.update_status("Error creating backup")
     
     def copy_to_clipboard(self, key):
         if self.current_ids and key in self.current_ids:
-            self.window.clipboard_clear()
-            self.window.clipboard_append(self.current_ids[key])
+            self.clipboard_clear()
+            self.clipboard_append(self.current_ids[key])
             self.update_status(f"Copied {key} to clipboard")
     
     def update_status(self, message):
@@ -694,7 +810,7 @@ class ModernIDManager:
             self.update_status("Current IDs loaded successfully")
             
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            show_message(self, "Error", str(e), "error")
             self.status_indicator.config(text="❌ Lỗi khi đọc ID")
             self.quick_status_label.config(text="Lỗi khi đọc ID")
             self.update_status("Error loading current IDs")
@@ -704,8 +820,8 @@ class ModernIDManager:
         webbrowser.open(url)
     
     def run(self):
-        self.window.mainloop()
+        self.mainloop()
 
 if __name__ == "__main__":
-    app = ModernIDManager()
+    app = MainApplication()
     app.run()

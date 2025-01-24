@@ -12,6 +12,9 @@ class CleanupManager:
         self.parent = parent
         self.notebook = notebook
         
+        # Cache các widget thường xuyên sử dụng
+        self._widgets = {}
+        
         # Initialize cleanup tab
         self.cleanup_tab = ttk.Frame(self.notebook, padding="20")
         self.notebook.add(self.cleanup_tab, text="Cleanup")
@@ -19,8 +22,43 @@ class CleanupManager:
         # App selection variable
         self.selected_app = tk.StringVar(value="Cursor")
         
+        # Directories to clear - define once
+        self.dirs_to_clear = {
+            'Local Storage': 'Dữ liệu cục bộ',
+            'Session Storage': 'Dữ liệu phiên',
+            'WebStorage': 'Bộ nhớ web',
+            'User/globalStorage': 'Dữ liệu người dùng',
+            'Cache': 'Bộ nhớ đệm',
+            'Code Cache': 'Bộ nhớ đệm mã',
+            'GPUCache': 'Bộ nhớ đệm GPU'
+        }
+        
+        # Description items - define once
+        self.desc_items = [
+            ("💾", "Local Storage", "Dữ liệu lưu trữ cục bộ"),
+            ("🔄", "Session Storage", "Dữ liệu phiên làm việc"),
+            ("🌐", "WebStorage", "Bộ nhớ đệm web"),
+            ("👤", "User/globalStorage", "Dữ liệu người dùng"),
+            ("📝", "Local State", "Trạng thái ứng dụng")
+        ]
+        
         # Setup UI components
         self.setup_ui()
+        
+    def clear_widgets(self):
+        """Clear cached widgets"""
+        for widget in self._widgets.values():
+            if widget and widget.winfo_exists():
+                widget.destroy()
+        self._widgets.clear()
+        
+    def get_widget(self, key):
+        """Get cached widget"""
+        return self._widgets.get(key)
+        
+    def set_widget(self, key, widget):
+        """Cache widget"""
+        self._widgets[key] = widget
         
     def setup_ui(self):
         # Main container with gradient background
@@ -59,6 +97,9 @@ class CleanupManager:
         ttk.Radiobutton(app_frame, text="Windsurf", value="Windsurf",
                        variable=self.selected_app,
                        command=self.on_app_change).pack(side=tk.LEFT, padx=20)
+        ttk.Radiobutton(app_frame, text="AIDE", value="AIDE",
+                       variable=self.selected_app,
+                       command=self.on_app_change).pack(side=tk.LEFT, padx=20)
         
         # Content area
         content_frame = ttk.Frame(self.main_frame)
@@ -69,15 +110,7 @@ class CleanupManager:
         info_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
         
         # Description with icons
-        desc_items = [
-            ("💾", "Local Storage", "Dữ liệu lưu trữ cục bộ"),
-            ("🔄", "Session Storage", "Dữ liệu phiên làm việc"),
-            ("🌐", "WebStorage", "Bộ nhớ đệm web"),
-            ("👤", "User/globalStorage", "Dữ liệu người dùng"),
-            ("📝", "Local State", "Trạng thái ứng dụng")
-        ]
-        
-        for icon, title, desc in desc_items:
+        for icon, title, desc in self.desc_items:
             item_frame = ttk.Frame(info_frame)
             item_frame.pack(fill=tk.X, pady=5)
             
@@ -160,9 +193,7 @@ class CleanupManager:
 
     def start_cleanup(self):
         # Clear previous results
-        for widget in self.progress_frame.winfo_children():
-            if isinstance(widget, ttk.Label) and widget != self.status_label:
-                widget.destroy()
+        self.clear_widgets()
         
         # Reset progress bar
         self.progress_var.set(0)
@@ -178,34 +209,61 @@ class CleanupManager:
 
     def perform_cleanup(self):
         try:
-            results = self.clear_app_data()
-            total_steps = len(results)
+            results = []
+            app_name = self.selected_app.get()
+            app_path = self.get_app_data_path()
             
+            # Close app first
+            self.close_app()
+            results.append((f"Đóng {app_name}", "Thành công", "✓"))
+            
+            # Clear directories in batches to reduce memory usage
+            batch_size = 3
+            for i in range(0, len(self.dirs_to_clear.items()), batch_size):
+                batch = list(self.dirs_to_clear.items())[i:i+batch_size]
+                
+                for dir_name, description in batch:
+                    dir_path = os.path.join(app_path, dir_name)
+                    if os.path.exists(dir_path):
+                        try:
+                            shutil.rmtree(dir_path)
+                            results.append((f"Xóa {description}\n→ {dir_path}", "Thành công", "✓"))
+                        except Exception as e:
+                            results.append((f"Xóa {description}\n→ {dir_path}", f"Lỗi: {str(e)}", "✗"))
+            
+            # Process results
+            total_steps = len(results)
             for i, (action, status, symbol) in enumerate(results):
                 # Update progress
                 progress = (i + 1) / total_steps * 100
                 self.progress_var.set(progress)
                 
                 # Update status
-                self.status_label.configure(text=f"Đang xử lý: {action}")
+                status_label = self.get_widget('status_label')
+                if status_label:
+                    status_label.configure(text=f"Đang xử lý: {action}")
                 
                 # Create result item
                 self.create_result_item(action, status, symbol)
                 
-                # Simulate processing time
-                time.sleep(0.5)
+                # Small delay to prevent UI freeze
+                self.parent.update_idletasks()
+                time.sleep(0.1)
             
-            app_name = self.selected_app.get()
             # Cleanup completed
-            self.status_label.configure(text=f"Hoàn tất dọn dẹp! Đang khởi động lại {app_name}...")
+            if status_label:
+                status_label.configure(text=f"Hoàn tất dọn dẹp! Đang khởi động lại {app_name}...")
             
             # Start app after cleanup
             self.start_app()
-            self.status_label.configure(text=f"Hoàn tất! {app_name} đã được khởi động lại.")
+            if status_label:
+                status_label.configure(text=f"Hoàn tất! {app_name} đã được khởi động lại.")
             
         finally:
             # Re-enable button
-            self.cleanup_btn.configure(state="normal")
+            cleanup_btn = self.get_widget('cleanup_btn')
+            if cleanup_btn:
+                cleanup_btn.configure(state="normal")
 
     def create_result_item(self, action, status, symbol):
         """Create a result item with file path and status"""
@@ -269,67 +327,44 @@ class CleanupManager:
         try:
             app_name = self.selected_app.get()
             if sys.platform == "win32":
-                app_path = os.path.join(os.getenv('LOCALAPPDATA'), 'Programs', app_name, f'{app_name}.exe')
-                if os.path.exists(app_path):
-                    os.startfile(app_path)
-                else:
-                    self.create_result_item(f"Khởi động {app_name}", "Không tìm thấy đường dẫn", "✗")
+                # Danh sách các đường dẫn có thể có của ứng dụng
+                possible_paths = [
+                    # Đường dẫn Programs
+                    os.path.join(os.getenv('LOCALAPPDATA'), 'Programs', app_name, f'{app_name}.exe'),
+                    # Đường dẫn Programs x86
+                    os.path.join(os.getenv('PROGRAMFILES(X86)'), app_name, f'{app_name}.exe'),
+                    # Đường dẫn Programs x64
+                    os.path.join(os.getenv('PROGRAMFILES'), app_name, f'{app_name}.exe'),
+                    # Đường dẫn AppData Local
+                    os.path.join(os.getenv('LOCALAPPDATA'), app_name, f'{app_name}.exe')
+                ]
+                
+                # Kiểm tra từng đường dẫn
+                app_found = False
+                for app_path in possible_paths:
+                    if os.path.exists(app_path):
+                        os.startfile(app_path)
+                        app_found = True
+                        self.create_result_item(f"Khởi động {app_name}", "Thành công", "✓")
+                        break
+                
+                if not app_found:
+                    self.create_result_item(
+                        f"Khởi động {app_name}", 
+                        "Không tìm thấy ứng dụng. Vui lòng khởi động thủ công.", 
+                        "✗"
+                    )
             else:
                 os.system(f'open -a {app_name}')
-            
-            self.create_result_item(f"Khởi động {app_name}", "Thành công", "✓")
+                self.create_result_item(f"Khởi động {app_name}", "Thành công", "✓")
             
         except Exception as e:
             self.create_result_item(f"Khởi động {app_name}", f"Lỗi: {str(e)}", "✗")
 
-    def clear_app_data(self):
-        """Clear app data with detailed file paths"""
-        app_path = self.get_app_data_path()
-        results = []
-        app_name = self.selected_app.get()
-        
-        # Close app first
-        self.close_app()
-        results.append((f"Đóng {app_name}", "Thành công", "✓"))
-        
-        # Define directories to clear with descriptions
-        dirs_to_clear = {
-            'Local Storage': 'Dữ liệu cục bộ',
-            'Session Storage': 'Dữ liệu phiên',
-            'WebStorage': 'Bộ nhớ web',
-            'User/globalStorage': 'Dữ liệu người dùng',
-            'Cache': 'Bộ nhớ đệm',
-            'Code Cache': 'Bộ nhớ đệm mã',
-            'GPUCache': 'Bộ nhớ đệm GPU'
-        }
-        
-        # Clear directories
-        for dir_name, description in dirs_to_clear.items():
-            dir_path = os.path.join(app_path, dir_name)
-            if os.path.exists(dir_path):
-                try:
-                    shutil.rmtree(dir_path)
-                    results.append((f"Xóa {description}\n→ {dir_path}", "Thành công", "✓"))
-                except Exception as e:
-                    results.append((f"Xóa {description}\n→ {dir_path}", f"Lỗi: {str(e)}", "✗"))
-        
-        # Clear Local State
-        local_state = os.path.join(app_path, 'Local State')
-        if os.path.exists(local_state):
-            try:
-                os.remove(local_state)
-                results.append((f"Xóa trạng thái\n→ {local_state}", "Thành công", "✓"))
-            except Exception as e:
-                results.append((f"Xóa trạng thái\n→ {local_state}", f"Lỗi: {str(e)}", "✗"))
-                
-        return results 
-
     def on_app_change(self):
         """Handle app selection change"""
         # Clear previous results
-        for widget in self.progress_frame.winfo_children():
-            if isinstance(widget, ttk.Label) and widget != self.status_label:
-                widget.destroy()
+        self.clear_widgets()
         
         # Reset progress bar
         self.progress_var.set(0)

@@ -37,7 +37,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='Lappy_Ver_2.1',
+    name='Lappy_Ver_2.1.1',
     debug=False,
     bootloader_ignore_signals=False,
     strip=True,
