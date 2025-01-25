@@ -3,16 +3,19 @@ import sys
 import os
 
 # Đường dẫn đến các files và folders cần include
-files = ['app/', 'public/']
+files = [
+    os.path.join(os.getcwd(), 'app/'),
+    os.path.join(os.getcwd(), 'public/'),
+]
 
 # Các thư viện cần thiết
-packages = ['tkinter', 'PIL', 'json', 'uuid', 'hashlib', 'requests', 'packaging']
+packages = ['tkinter', 'Pillow', 'json', 'uuid', 'hashlib', 'requests', 'packaging']
 
 # Cấu hình build
 build_exe_options = {
     "packages": packages,
     "include_files": files,
-    "include_msvcr": True,
+    "include_msvcr": True,  # Bao gồm runtime Microsoft C++ nếu cần
 }
 
 # Tạo executable
@@ -27,10 +30,10 @@ setup(
     options={"build_exe": build_exe_options},
     executables=[
         Executable(
-            "main.py",
+            script="main.py",  # Đường dẫn file script chính
             base=base,
-            icon="public/image/icon.ico",
+            icon=os.path.join(os.getcwd(), 'public', 'image', 'icon.ico'),
             target_name="Lappy_Hacking.exe"
         )
     ]
-) 
+)
