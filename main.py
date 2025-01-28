@@ -326,7 +326,7 @@ class MainApplication(tk.Tk):
         # Quick fix button
         quick_fix_btn = ttk.Button(actions_left, 
                                 text="⚡ Sửa lỗi nhanh",
-                                command=lambda: [self.generate_ids(), self.save_ids()],
+                                command=self.quick_fix,
                                 style="Action.TButton", 
                                 width=20)
         quick_fix_btn.pack(side=tk.LEFT, padx=5)
@@ -856,6 +856,71 @@ class MainApplication(tk.Tk):
         import webbrowser
         webbrowser.open(url)
     
+    def quick_fix(self):
+        """Sửa lỗi nhanh bằng cách tạo và cập nhật tất cả ID"""
+        try:
+            # Tạo ID mới
+            app_name = self.app_var.get()
+            self.current_ids = self.id_generator.generate_ids(app_name)
+            
+            # Kiểm tra đầy đủ các trường
+            required_keys = [
+                "telemetry.macMachineId",
+                "telemetry.sqmId",
+                "telemetry.machineId",
+                "telemetry.devDeviceId"
+            ]
+            
+            for key in required_keys:
+                if key not in self.current_ids:
+                    raise ValueError(f"Thiếu trường {key} trong ID mới tạo")
+            
+            # Lưu vào file
+            if self.file_manager.save_ids(self.current_ids):
+                # Cập nhật giao diện
+                for key, label in self.id_labels.items():
+                    label.config(text=self.current_ids[key])
+                
+                # Cập nhật trạng thái
+                self.status_indicator.config(text="✅ Đã sửa lỗi")
+                self.quick_status_label.config(text="Đã sửa lỗi")
+                show_message(self, "Thành công", "Đã cập nhật tất cả ID!", "success")
+                
+                # Kiểm tra lại sau khi lưu
+                self.verify_saved_ids()
+                
+        except Exception as e:
+            error_msg = f"Lỗi khi sửa nhanh: {str(e)}"
+            print(f"[QUICK FIX ERROR] {traceback.format_exc()}")
+            show_message(self, "Lỗi", error_msg, "error")
+            self.status_indicator.config(text="❌ Lỗi sửa nhanh")
+    
+    def verify_saved_ids(self):
+        """Kiểm tra xem ID đã được lưu đúng chưa"""
+        try:
+            storage_path = self.file_manager.get_storage_path(self.app_var.get())
+            
+            with open(storage_path, 'r', encoding='utf-8') as f:
+                saved_data = json.load(f)
+            
+            # Danh sách đầy đủ các key cần kiểm tra
+            required_keys = [
+                "telemetry.macMachineId",
+                "telemetry.sqmId", 
+                "telemetry.machineId",
+                "telemetry.devDeviceId"
+            ]
+            
+            for key in required_keys:
+                if saved_data.get(key) != self.current_ids.get(key):
+                    raise ValueError(f"{key} không khớp\nĐã lưu: {saved_data.get(key)}\nMong đợi: {self.current_ids[key]}")
+            
+            print("[VERIFY] Tất cả ID đã được cập nhật chính xác")
+            
+        except Exception as e:
+            print(f"[VERIFY ERROR] {str(e)}")
+            raise
+    
     def run(self):
         self.mainloop()
 
@@ -875,7 +940,7 @@ def update_storage_file(new_ids):
         with open(storage_path, 'w') as f:
             json.dump(data, f, indent=4)
             
-        print("Đã cập nhật ID thành công vào storage.json")
+        print("Đang khởi động LappyHacking...")
         
     except Exception as e:
         print(f"Lỗi khi cập nhật file: {str(e)}")

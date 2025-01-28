@@ -132,19 +132,18 @@ class FileManager:
         """Lưu ID mới vào storage.json"""
         try:
             storage_path = self.get_storage_path(self.app_name)
-            print(f"[DEBUG] Đường dẫn lưu: {storage_path}")
+            print(f"[DEBUG] Đang lưu vào: {storage_path}")
             
             # Đảm bảo thư mục tồn tại
             os.makedirs(os.path.dirname(storage_path), exist_ok=True)
             
             # Đọc dữ liệu cũ hoặc tạo mới
+            data = {}
             if os.path.exists(storage_path):
                 with open(storage_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-            else:
-                data = {}
             
-            # Chỉ cập nhật các trường telemetry
+            # Cập nhật tất cả các trường telemetry
             telemetry_keys = [
                 "telemetry.macMachineId",
                 "telemetry.sqmId",
@@ -152,17 +151,22 @@ class FileManager:
                 "telemetry.devDeviceId"
             ]
             
+            # Kiểm tra và cập nhật từng key
             for key in telemetry_keys:
                 if key in new_ids:
+                    print(f"[DEBUG] Cập nhật {key}: {new_ids[key]}")
                     data[key] = new_ids[key]
+                else:
+                    print(f"[WARNING] Thiếu key {key} trong dữ liệu mới")
             
-            # Ghi file với định dạng đẹp
+            # Ghi file
             with open(storage_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
             
-            print("[DEBUG] Lưu file thành công")
+            print("[SUCCESS] Đã lưu tất cả ID")
             return True
             
         except Exception as e:
-            print(f"[SAVE ERROR] {traceback.format_exc()}")
-            raise RuntimeError(f"Lỗi hệ thống: {str(e)}")
+            print(f"[ERROR] Lỗi khi lưu ID: {str(e)}")
+            print(traceback.format_exc())
+            raise RuntimeError(f"Lỗi khi lưu file: {str(e)}")

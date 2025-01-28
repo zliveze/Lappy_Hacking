@@ -26,18 +26,16 @@ class IDGenerator:
         
     def generate_ids(self, app_name):
         """Tạo ID duy nhất cho từng loại ứng dụng"""
-        base_seed = {
-            "Cursor": str(uuid.getnode()),  # Dùng hardware address
-            "Windsurf": str(random.getrandbits(256)),  # Random số lớn
-            "AIDE": str(uuid.uuid4())  # UUID ngẫu nhiên
-        }.get(app_name, "")
+        # Tạo seed ngẫu nhiên mới mỗi lần gọi
+        random_seed = str(uuid.uuid4()) + str(random.getrandbits(256))
         
-        machine_hash = hashlib.sha256(f"{app_name}_{base_seed}".encode()).hexdigest()
+        # Tạo base hash từ seed
+        base_hash = hashlib.sha256(random_seed.encode()).hexdigest()
         
         return {
-            "telemetry.macMachineId": hashlib.sha256(f"{machine_hash}_MAC".encode()).hexdigest(),
+            "telemetry.macMachineId": hashlib.sha256(f"{base_hash}_MAC_{random_seed}".encode()).hexdigest(),
             "telemetry.sqmId": "{" + str(uuid.uuid4()).upper() + "}",
-            "telemetry.machineId": hashlib.sha256(f"{machine_hash}_MACHINE".encode()).hexdigest(),
+            "telemetry.machineId": hashlib.sha256(f"{base_hash}_MACHINE_{random_seed}".encode()).hexdigest(),
             "telemetry.devDeviceId": str(uuid.uuid4())
         }
     
