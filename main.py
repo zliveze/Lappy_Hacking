@@ -14,6 +14,8 @@ import sys
 import requests
 import re
 from packaging import version
+import json
+import traceback
 
 def check_for_updates():
     """Kiểm tra phiên bản mới từ GitHub"""
@@ -747,23 +749,41 @@ class MainApplication(tk.Tk):
     def save_ids(self):
         try:
             if not self.current_ids:
-                raise ValueError("Please generate IDs first!")
+                raise ValueError("Vui lòng tạo ID mới trước khi lưu!")
             
-            app_name = self.app_var.get()
-            self.file_manager.set_app(app_name)
-            self.file_manager.save_ids(self.current_ids)
+            # Lấy đường dẫn chính xác
+            storage_path = self.file_manager.get_storage_path(self.app_var.get())
+            print(f"[SAVE] Đang lưu tới: {storage_path}")
             
-            # Update status indicators
-            self.status_indicator.config(text="✅ Đã lưu ID thành công")
-            self.quick_status_label.config(text="Đã lưu ID")
-            show_message(self, "Success", "IDs saved successfully!", "success")
-            self.update_status("IDs saved to storage")
-            
+            # Thực hiện lưu
+            if self.file_manager.save_ids(self.current_ids):
+                # Xác minh kết quả
+                if not os.path.exists(storage_path):
+                    raise FileNotFoundError("Không tìm thấy file sau khi lưu")
+                
+                with open(storage_path, 'r', encoding='utf-8') as f:
+                    saved_data = json.load(f)
+                
+                # Kiểm tra từng ID
+                required_keys = [
+                    "telemetry.macMachineId",
+                    "telemetry.sqmId",
+                    "telemetry.machineId",
+                    "telemetry.devDeviceId"
+                ]
+                
+                for key in required_keys:
+                    if saved_data.get(key) != self.current_ids.get(key):
+                        raise ValueError(f"Lỗi xác minh: {key} không khớp")
+                
+                # Cập nhật UI
+                self.status_indicator.config(text="✅ Lưu thành công")
+                show_message(self, "Thành công", "Cập nhật ID thành công!", "success")
+                
         except Exception as e:
-            show_message(self, "Error", str(e), "error")
-            self.status_indicator.config(text="❌ Lỗi khi lưu ID")
-            self.quick_status_label.config(text="Lỗi khi lưu ID")
-            self.update_status("Error saving IDs")
+            error_msg = f"LỖI: {str(e)}"
+            print(f"[FINAL ERROR] {traceback.format_exc()}")
+            show_message(self, "Lỗi nghiêm trọng", error_msg, "error")
     
     def create_backup(self):
         try:
@@ -794,26 +814,43 @@ class MainApplication(tk.Tk):
     def read_current_ids(self):
         try:
             app_name = self.app_var.get()
-            self.file_manager.set_app(app_name)
-            self.current_ids = self.file_manager.read_current_ids()
+            storage_path = self.file_manager.get_storage_path(app_name)
+            print(f"[DEBUG] Đang đọc từ: {storage_path}")
             
-            # Update labels
+            if not os.path.exists(storage_path):
+                raise FileNotFoundError(f"Không tìm thấy file storage.json tại: {storage_path}")
+            
+            with open(storage_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # Lấy các key cho ứng dụng tương ứng
+            required_keys = {
+                "telemetry.macMachineId": data.get("telemetry.macMachineId", "Not found"),
+                "telemetry.sqmId": data.get("telemetry.sqmId", "Not found"),
+                "telemetry.machineId": data.get("telemetry.machineId", "Not found"),
+                "telemetry.devDeviceId": data.get("telemetry.devDeviceId", "Not found")
+            }
+            
+            # Kiểm tra dữ liệu
+            for key, value in required_keys.items():
+                if value == "Not found":
+                    raise ValueError(f"Thiếu trường dữ liệu: {key}")
+            
+            self.current_ids = required_keys
+            
+            # Cập nhật giao diện
             for key, label in self.id_labels.items():
-                if key in self.current_ids:
-                    label.config(text=self.current_ids[key])
-                else:
-                    label.config(text="Not found")
+                label.config(text=self.current_ids[key])
             
-            # Update status indicators
             self.status_indicator.config(text="✅ Đã đọc ID hiện tại")
             self.quick_status_label.config(text="Đã đọc ID")
             self.update_status("Current IDs loaded successfully")
             
         except Exception as e:
-            show_message(self, "Error", str(e), "error")
-            self.status_indicator.config(text="❌ Lỗi khi đọc ID")
-            self.quick_status_label.config(text="Lỗi khi đọc ID")
-            self.update_status("Error loading current IDs")
+            print(f"[READ ERROR] Đường dẫn: {storage_path} | Lỗi: {str(e)}")
+            show_message(self, "Lỗi", f"Không thể đọc ID: {str(e)}", "error")
+            self.status_indicator.config(text="❌ Lỗi đọc ID")
+            self.quick_status_label.config(text="Lỗi đọc ID")
     
     def open_website(self, url):
         import webbrowser
@@ -821,6 +858,37 @@ class MainApplication(tk.Tk):
     
     def run(self):
         self.mainloop()
+
+def update_storage_file(new_ids):
+    # Đường dẫn file storage.json
+    storage_path = os.path.expanduser(r'~\AppData\Roaming\Cursor\User\globalStorage\storage.json')
+    
+    try:
+        # Đọc nội dung file hiện tại
+        with open(storage_path, 'r') as f:
+            data = json.load(f)
+        
+        # Cập nhật các ID mới
+        data.update(new_ids)
+        
+        # Ghi lại toàn bộ nội dung với quyền ghi
+        with open(storage_path, 'w') as f:
+            json.dump(data, f, indent=4)
+            
+        print("Đã cập nhật ID thành công vào storage.json")
+        
+    except Exception as e:
+        print(f"Lỗi khi cập nhật file: {str(e)}")
+
+# Ví dụ sử dụng
+new_ids = {
+    "telemetry.macMachineId": "759cba55a22407896ebcb30d854ffef8d172a2d4aca7ab2795c16da1f0e137fb",
+    "telemetry.sqmId": "{059014FA-EF52-4411-A0C4-2E2FC3BE664A}",
+    "telemetry.machineId": "6d61faa20fcbe45e179bcf7444d83da2f2c4f90c8479c435c5a5bdf71a062d22",
+    "telemetry.devDeviceId": "2a0df458-5082-42bd-a049-b8c5a32cd1dd"
+}
+
+update_storage_file(new_ids)
 
 if __name__ == "__main__":
     app = MainApplication()

@@ -10,19 +10,18 @@ VSVersionInfo(
     date=(0, 0)
   ),
   kids=[
-    StringFileInfo(
-      [
-        StringTable(
-          u'040904B0',
-          [StringStruct(u'CompanyName', u'Lappy Hacking'),
-          StringStruct(u'FileDescription', u'ID Generator Tool'),
-          StringStruct(u'FileVersion', u'2.1.2'),
-          StringStruct(u'InternalName', u'Lappy_Hacking'),
-          StringStruct(u'LegalCopyright', u'Copyright (c) 2024 Nguyen Ky'),
-          StringStruct(u'OriginalFilename', u'Lappy_Hacking.exe'),
-          StringStruct(u'ProductName', u'Lappy Hacking'),
-          StringStruct(u'ProductVersion', u'2.1.2')])
-      ]), 
+    StringFileInfo([
+      StringTable(
+        u'040904B0',
+        [StringStruct(u'CompanyName', u'Nguyen Ky'),
+        StringStruct(u'FileDescription', u'Lappy Hacking - ID Generator Tool'),
+        StringStruct(u'FileVersion', u'2.1.2'),
+        StringStruct(u'InternalName', u'lappy_hacking'),
+        StringStruct(u'LegalCopyright', u'Copyright (c) 2024 Nguyen Ky'),
+        StringStruct(u'OriginalFilename', u'Lappy_Hacking.exe'),
+        StringStruct(u'ProductName', u'Lappy Hacking'),
+        StringStruct(u'ProductVersion', u'2.1.2')])
+    ]),
     VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
   ]
 ) 
