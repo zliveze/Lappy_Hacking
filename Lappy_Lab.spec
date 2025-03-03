@@ -1,65 +1,87 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-import sys
 import os
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 block_cipher = None
 
-# Thêm các file resources
+# Sửa lại cách copy resources
 added_files = [
     ('public/image/icon.jpg', 'public/image'),
     ('public/image/cursor-icon.jpg', 'public/image'),
     ('public/image/windsurf-icon.png', 'public/image'),
     ('public/image/aide.png', 'public/image'),
-    ('app/utils/*.py', 'app/utils'),
-    ('app/components/*.py', 'app/components')
-]
-
-# Thu thập tất cả submodules
-hidden_imports = [
-    'webbrowser',
-    'json',
-    'uuid',
-    'winreg',
-    'ctypes',
-    'requests',
-    'packaging',
-    'PIL',
-    'win32gui',
-    'win32con',
-    'tkinter',
-    'traceback',
-    'datetime',
-    'platform'
+    ('public/image/icon.ico', 'public/image'),
+    ('app/utils/*.py', 'app/utils')
 ]
 
 a = Analysis(
     ['main.py'],
-    pathex=[os.path.dirname(os.path.abspath(SPEC))],
+    pathex=[os.path.abspath(SPECPATH)],
     binaries=[],
     datas=added_files,
-    hiddenimports=hidden_imports,
+    hiddenimports=[
+        'PIL',
+        'PIL._imagingtk',
+        'PIL._tkinter_finder',
+        'app',
+        'app.utils',
+        'app.utils.id_generator',
+        'app.utils.file_manager',
+        'app.utils.message_box',
+        'app.utils.settings_manager',
+        'app.utils.version_info_dialog',
+        'packaging.version',
+        'packaging.specifiers',
+        'packaging.requirements',
+        'packaging.markers',
+        'webbrowser',
+        'json',
+        'uuid',
+        'winreg',
+        'ctypes',
+        'requests',
+        'tkinter',
+        'tkinter.ttk',
+        'tkinter.messagebox',
+        're',
+        'datetime',
+        'platform',
+        'traceback'
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        'numpy', 'pandas', 'scipy', 'matplotlib',
+        'PyQt5', 'PyQt6', 'PySide6', 'wx',
+        'test', 'unittest'
+    ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
-    noarchive=False,
+    noarchive=False
 )
 
-# Xóa các file không cần thiết khỏi bundle
+excludes_patterns = [
+    '*test*',
+    '*docs*',
+    '*.pyc',
+    '*__pycache__*'
+]
+
 def remove_from_list(list_, patterns):
+    import fnmatch
     for file_ in list_[:]:
         for pattern in patterns:
-            if pattern in file_[0]:
+            if fnmatch.fnmatch(file_[0], pattern):
                 list_.remove(file_)
                 break
 
-# patterns_to_exclude = ['tkinter/test', 'lib2to3', 'unittest']
-# remove_from_list(a.datas, patterns_to_exclude)
+remove_from_list(a.datas, excludes_patterns)
+remove_from_list(a.binaries, excludes_patterns)
+
+# Bỏ qua việc strip binary files
+a.binaries = [x for x in a.binaries if not x[0].startswith('api-ms-win')]
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
@@ -77,12 +99,15 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,
+    console=True,  # Tạm thời bật console để xem lỗi
     disable_windowed_traceback=False,
+    argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
     icon='public/image/icon.ico',
-    version='file_version_info.txt'
+    version='file_version_info.txt',
+    uac_admin=True,
+    onefile=True
 )
 

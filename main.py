@@ -68,7 +68,7 @@ def check_for_updates():
     """Kiểm tra phiên bản mới từ GitHub"""
     try:
         # Phiên bản hiện tại
-        current_version = "3.0.0"
+        current_version = "3.1.0"
         
         # Lấy thông tin phiên bản mới nhất từ GitHub
         response = requests.get(
@@ -103,12 +103,14 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 def is_admin():
+    """Kiểm tra quyền admin"""
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
     except:
         return False
 
 def run_as_admin():
+    """Chạy lại ứng dụng với quyền admin nếu chưa có"""
     try:
         if sys.argv[-1] != 'asadmin':
             script = os.path.abspath(sys.argv[0])
@@ -402,7 +404,7 @@ class MainApplication(tk.Tk):
         
         # Get system information
         system_info = self.get_system_info()
-        version_info = "Version 3.0.0 (Released: Feb 23, 2025)"
+        version_info = "Version 3.1.0 (Released: Mar 03, 2025)"
         
         # Add modern styling to system info
         ttk.Label(info_frame, text=system_info, style="Subtitle.TLabel").pack(anchor="e", pady=(0, 2))
