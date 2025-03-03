@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, simpledialog
 from app.utils.id_generator import IDGenerator
 from app.utils.file_manager import FileManager
 from app.utils.message_box import show_message
@@ -21,6 +21,48 @@ import uuid
 import ctypes
 from ctypes import windll
 import webbrowser
+from app.components.advanced_tab import AdvancedTab
+
+class SettingsManager:
+    def __init__(self):
+        self.settings_file = os.path.join(os.path.expanduser("~"), "lappy_lab_settings.json")
+        self.default_settings = {
+            "auto_admin": False,
+            "auto_update": True,
+            "auto_backup": True,
+            "confirm_dangerous": True,
+            "language": "vi",
+            "id_backup_path": os.path.join(os.path.expanduser("~"), "id_backups"),
+            "guid_backup_path": os.path.join(os.path.expanduser("~"), "guid_backups"),
+            "window_size": "1200x800",
+            "font_size": "normal"
+        }
+        self.settings = self.load_settings()
+
+    def load_settings(self):
+        try:
+            if os.path.exists(self.settings_file):
+                with open(self.settings_file, 'r', encoding='utf-8') as f:
+                    return {**self.default_settings, **json.load(f)}
+            return self.default_settings.copy()
+        except Exception:
+            return self.default_settings.copy()
+
+    def save_settings(self):
+        try:
+            with open(self.settings_file, 'w', encoding='utf-8') as f:
+                json.dump(self.settings, f, indent=4)
+        except Exception as e:
+            print(f"Lỗi khi lưu cài đặt: {str(e)}")
+
+    def get_setting(self, key, default=None):
+        """Lấy giá trị cài đặt với giá trị mặc định tùy chọn"""
+        return self.settings.get(key, default or self.default_settings.get(key))
+
+    def set_setting(self, key, value):
+        if key in self.default_settings:
+            self.settings[key] = value
+            self.save_settings()
 
 def check_for_updates():
     """Kiểm tra phiên bản mới từ GitHub"""
@@ -104,12 +146,15 @@ class MainApplication(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Lappy Lab")
-        self.geometry("1400x900")
-        self.minsize(1400, 900)
-        self.configure(bg='#D4D0C8')
         
         # Initialize settings manager
         self.settings_manager = SettingsManager()
+        
+        # Áp dụng window size từ settings
+        window_size = self.settings_manager.get_setting("window_size", "1200x800")
+        self.geometry(window_size)
+        self.minsize(1200, 800)
+        self.configure(bg='#D4D0C8')
         
         # Cache cho icons để tránh load lại nhiều lần
         self._icon_cache = {}
@@ -133,7 +178,7 @@ class MainApplication(tk.Tk):
         self.center_window()
         
         # Hiển thị thông báo phiên bản nếu được cấu hình
-        if self.settings_manager.get_show_version_info():
+        if self.settings_manager.get_setting("show_version_info"):
             self.after(1000, lambda: VersionInfoDialog(self, self.settings_manager))
         
         # Kiểm tra cập nhật sau khi UI đã load
@@ -371,7 +416,11 @@ class MainApplication(tk.Tk):
         main_tab = ttk.Frame(notebook, padding="10")
         notebook.add(main_tab, text="ID Generator")
         
-        # Settings and About tab - Moved to last
+        # Add Advanced tab
+        advanced_tab = AdvancedTab(notebook)
+        notebook.add(advanced_tab, text="Advanced")
+        
+        # Settings tab 
         settings_tab = ttk.Frame(notebook, padding="10")
         notebook.add(settings_tab, text="Settings")
         
@@ -539,7 +588,9 @@ class MainApplication(tk.Tk):
         )
         self.style.configure('ID.TLabel', 
             background='#D4D0C8',
-            font=('Consolas', 9)
+            font=('Consolas', 9),
+            width=40,  # Cố định chiều rộng
+            anchor='w'  # Căn lề trái
         )
 
         # Tiếp tục phần code hiện tại với id_types và vòng lặp...
@@ -552,19 +603,25 @@ class MainApplication(tk.Tk):
 
         self.id_labels = {}
         for idx, (label_text, (display_text, key)) in enumerate(id_types.items()):
-            # Card frame với style mới
+            # Card frame với style cố định
             card_frame = ttk.Frame(grid_frame, style='Card.TFrame')
             card_frame.grid(row=idx, column=0, pady=3, sticky="ew")
             card_frame.grid_columnconfigure(1, weight=1)
             
             # Title với icon (cột 0)
-            ttk.Label(card_frame, text=display_text,
-                     style="Bold.TLabel").grid(row=0, column=0, padx=(5,0), pady=5)
+            title_label = ttk.Label(card_frame, text=display_text,
+                                  style="Bold.TLabel",
+                                  width=20)  # Cố định chiều rộng title
+            title_label.grid(row=0, column=0, padx=(5,0), pady=5)
             
-            # ID value với monospace font (cột 1)
-            id_label = ttk.Label(card_frame, text="Not generated",
+            # ID value với monospace font và kích thước cố định (cột 1)
+            id_frame = ttk.Frame(card_frame)
+            id_frame.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+            id_frame.grid_columnconfigure(0, weight=1)
+            
+            id_label = ttk.Label(id_frame, text="Not generated",
                                style="ID.TLabel")
-            id_label.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+            id_label.grid(row=0, column=0, sticky="ew")
             self.id_labels[key] = id_label
             
             # Copy button (cột 2)
@@ -597,113 +654,6 @@ class MainApplication(tk.Tk):
                               wraplength=500,
                               font=("Segoe UI", 10))  # Increased wraplength for better readability
         guide_label.pack(fill=tk.X, pady=5)
-
-        # Thêm MachineGuid Panel
-        machine_guid_frame = ttk.LabelFrame(main_content, text="Quản lý MachineGuid", padding="15")
-        machine_guid_frame.pack(fill=tk.X, pady=(0, 15))
-
-        # Hiển thị MachineGuid hiện tại
-        guid_display_frame = ttk.Frame(machine_guid_frame)
-        guid_display_frame.pack(fill=tk.X, pady=5)
-        
-        ttk.Label(guid_display_frame, text="Current MachineGuid:", 
-                 style="Bold.TLabel").pack(side=tk.LEFT, padx=5)
-        
-        self.machine_guid_label = ttk.Label(guid_display_frame, text="", 
-                                          style="ID.TLabel")
-        self.machine_guid_label.pack(side=tk.LEFT, padx=5)
-        
-        # Update current GUID
-        try:
-            current_guid = get_machine_guid()
-            self.machine_guid_label.config(text=current_guid)
-        except Exception as e:
-            self.machine_guid_label.config(text="Unable to read")
-
-        # Buttons frame
-        buttons_frame = ttk.Frame(machine_guid_frame)
-        buttons_frame.pack(fill=tk.X, pady=5)
-
-        # Backup button
-        backup_btn = ttk.Button(buttons_frame, 
-                              text="💾 Sao lưu ID",
-                              command=self.backup_machine_guid,
-                              style="Green.TButton",
-                              width=20)
-        backup_btn.pack(side=tk.LEFT, padx=5)
-
-        # Change button
-        change_btn = ttk.Button(buttons_frame,
-                              text="🔄 Thay đổi ID",
-                              command=self.change_machine_guid,
-                              style="Red.TButton",
-                              width=20)
-        change_btn.pack(side=tk.LEFT, padx=5)
-
-        # Restore button
-        restore_btn = ttk.Button(buttons_frame,
-                               text="⏮ Phục hồi ID",
-                               command=self.restore_machine_guid,
-                               style="Blue.TButton",
-                               width=20)
-        restore_btn.pack(side=tk.LEFT, padx=5)
-
-        # Thêm phần hướng dẫn mới
-        guide_frame = ttk.Frame(machine_guid_frame, style='Tab.TFrame')
-        guide_frame.pack(fill=tk.X, pady=20)
-        
-        # Tiêu đề hướng dẫn
-        guide_title = ttk.Label(
-            guide_frame,
-            text="Hướng dẫn sửa lỗi",
-            style="Header.TLabel"
-        )
-        guide_title.pack(anchor=tk.W, pady=(0, 10))
-        
-        # Các lưu ý quan trọng
-        notes = [
-            "⚠️ Lưu ý đảm bảo đã sao Lưu MachineGUID",
-            "📝 Fix Cursor 0.45 trở lên",
-            "❗ Đảm bảo đã tắt Cursor"
-        ]
-        
-        for note in notes:
-            note_label = ttk.Label(
-                guide_frame,
-                text=note,
-                style="Warning.TLabel"
-            )
-            note_label.pack(anchor=tk.W, pady=2)
-        
-        # Các bước thực hiện
-        steps = [
-            "1. Thay đổi thông tin ID bằng cách nhấp vào nút sửa lỗi nhanh",
-            "2. Tại Thay đổi MachineGUID (Sao lưu trước khi đổi)",
-            "3. Mở lại Cursor và Login bằng tài khoản mới", 
-            "4. Mở chat lên và thực hiện chat (Để IDE xác nhận GUID)",
-            "5. Quay lại Lappy Lab và khôi phục lại MachineGUID"
-        ]
-        
-        steps_frame = ttk.Frame(guide_frame, style='Tab.TFrame')
-        steps_frame.pack(fill=tk.X, pady=(10, 0))
-        
-        for step in steps:
-            step_label = ttk.Label(
-                steps_frame,
-                text=step,
-                style="Description.TLabel",
-                wraplength=580
-            )
-            step_label.pack(anchor=tk.W, pady=5)
-        #Thêm Note màu cam
-        note_frame = ttk.Frame(guide_frame, style='Tab.TFrame')
-        note_frame.pack(fill=tk.X, pady=(10, 0))
-        note_label = ttk.Label(
-            note_frame,
-            text="Lưu ý: MachineGuid chỉ được sử dụng cho Cursor 0.45 trở lên vì đây là đoạn mã rất nguy hiểm\nvì nó có thể gây ảnh hưởng nghiêm trọng đến xác minh các ứng dụng \nvà bản quyền trên máy tính của bạn, hãy đảm bảo đã backup đoạn mã trước khi thực hiện",
-            style="Warning.TLabel"
-        )
-        note_label.pack(anchor=tk.W, pady=5)
 
     def setup_settings_tab(self, parent):
         # Create scrollable frame for settings content
@@ -745,7 +695,133 @@ class MainApplication(tk.Tk):
         # Main settings container
         settings_frame = ttk.Frame(scrollable_frame)
         settings_frame.pack(fill=tk.BOTH, expand=True, padx=50)
+
+        # Application Settings Section
+        app_settings_frame = ttk.LabelFrame(settings_frame, text="Application Settings", padding="15")
+        app_settings_frame.pack(fill=tk.X, pady=(0, 20))
+
+        # General Settings
+        general_frame = ttk.Frame(app_settings_frame)
+        general_frame.pack(fill=tk.X, pady=5)
+
+        # Auto-start with admin rights
+        self.auto_admin_var = tk.BooleanVar(value=self.settings_manager.get_setting("auto_admin", True))
+        ttk.Checkbutton(general_frame, 
+                       text="Tự động chạy với quyền Admin",
+                       variable=self.auto_admin_var,
+                       command=lambda: self.settings_manager.set_setting("auto_admin", self.auto_admin_var.get())
+                       ).pack(anchor=tk.W, pady=2)
+
+        # Auto-check for updates
+        self.auto_update_var = tk.BooleanVar(value=self.settings_manager.get_setting("auto_update_check", True))
+        ttk.Checkbutton(general_frame,
+                       text="Tự động kiểm tra cập nhật khi khởi động",
+                       variable=self.auto_update_var,
+                       command=lambda: self.settings_manager.set_setting("auto_update_check", self.auto_update_var.get())
+                       ).pack(anchor=tk.W, pady=2)
+
+        # Auto-backup before changes
+        self.auto_backup_var = tk.BooleanVar(value=self.settings_manager.get_setting("auto_backup", True))
+        ttk.Checkbutton(general_frame,
+                       text="Tự động sao lưu trước khi thay đổi",
+                       variable=self.auto_backup_var,
+                       command=lambda: self.settings_manager.set_setting("auto_backup", self.auto_backup_var.get())
+                       ).pack(anchor=tk.W, pady=2)
+
+        # Confirm dangerous operations
+        self.confirm_dangerous_var = tk.BooleanVar(value=self.settings_manager.get_setting("confirm_dangerous", True))
+        ttk.Checkbutton(general_frame,
+                       text="Xác nhận trước khi thực hiện thao tác nguy hiểm",
+                       variable=self.confirm_dangerous_var,
+                       command=lambda: self.settings_manager.set_setting("confirm_dangerous", self.confirm_dangerous_var.get())
+                       ).pack(anchor=tk.W, pady=2)
+
+        # Backup Settings
+        backup_frame = ttk.LabelFrame(app_settings_frame, text="Backup Settings", padding="10")
+        backup_frame.pack(fill=tk.X, pady=10)
+
+        # ID Backup Path
+        id_backup_frame = ttk.Frame(backup_frame)
+        id_backup_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(id_backup_frame, text="ID Backup Path:").pack(side=tk.LEFT)
+        self.id_backup_path_var = tk.StringVar(value=self.settings_manager.get_setting("id_backup_path", ""))
+        ttk.Entry(id_backup_frame, textvariable=self.id_backup_path_var, width=50).pack(side=tk.LEFT, padx=5)
+        ttk.Button(id_backup_frame, text="Browse",
+                  command=lambda: self.browse_backup_path("id")).pack(side=tk.LEFT)
+
+        # GUID Backup Path
+        guid_backup_frame = ttk.Frame(backup_frame)
+        guid_backup_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(guid_backup_frame, text="GUID Backup Path:").pack(side=tk.LEFT)
+        self.guid_backup_path_var = tk.StringVar(value=self.settings_manager.get_setting("guid_backup_path", ""))
+        ttk.Entry(guid_backup_frame, textvariable=self.guid_backup_path_var, width=50).pack(side=tk.LEFT, padx=5)
+        ttk.Button(guid_backup_frame, text="Browse",
+                  command=lambda: self.browse_backup_path("guid")).pack(side=tk.LEFT)
+
+        # UI Settings
+        ui_frame = ttk.LabelFrame(app_settings_frame, text="UI Settings", padding="10")
+        ui_frame.pack(fill=tk.X, pady=10)
+
+        # Window Size
+        size_frame = ttk.Frame(ui_frame)
+        size_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(size_frame, text="Default Window Size:").pack(side=tk.LEFT, padx=(0, 10))
+        self.window_size_var = tk.StringVar(value=self.settings_manager.get_setting("window_size", "1200x800"))
+        size_combo = ttk.Combobox(size_frame,
+                                textvariable=self.window_size_var,
+                                values=["1200x800", "1024x768", "1366x768", "1440x900", "1920x1080"],
+                                state="readonly",
+                                width=15)
+        size_combo.pack(side=tk.LEFT)
+        size_combo.bind('<<ComboboxSelected>>',
+                       lambda e: self.apply_window_size(self.window_size_var.get()))
+
+        # Font Settings
+        font_frame = ttk.Frame(ui_frame)
+        font_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(font_frame, text="Font Size:").pack(side=tk.LEFT, padx=(0, 10))
+        self.font_size_var = tk.StringVar(value=self.settings_manager.get_setting("font_size", "10"))
+        font_combo = ttk.Combobox(font_frame,
+                                textvariable=self.font_size_var,
+                                values=["8", "9", "10", "11", "12", "14"],
+                                state="readonly",
+                                width=15)
+        font_combo.pack(side=tk.LEFT)
+        font_combo.bind('<<ComboboxSelected>>',
+                       lambda e: self.apply_font_size(self.font_size_var.get()))
         
+        # Registry Editor Section
+        registry_frame = ttk.LabelFrame(settings_frame, text="Registry Editor", padding="10")
+        registry_frame.pack(fill=tk.X, pady=(0, 10))
+
+        # Registry Path Entry
+        reg_path_frame = ttk.Frame(registry_frame)
+        reg_path_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(reg_path_frame, text="Registry Path:").pack(side=tk.LEFT)
+        self.reg_path_var = tk.StringVar(value=r"SOFTWARE\Microsoft\Cryptography")
+        reg_path_entry = ttk.Entry(reg_path_frame, textvariable=self.reg_path_var, width=50)
+        reg_path_entry.pack(side=tk.LEFT, padx=5)
+
+        # Registry Value Entry
+        reg_value_frame = ttk.Frame(registry_frame)
+        reg_value_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(reg_value_frame, text="Value Name:").pack(side=tk.LEFT)
+        self.reg_value_var = tk.StringVar(value="MachineGuid")
+        reg_value_entry = ttk.Entry(reg_value_frame, textvariable=self.reg_value_var, width=30)
+        reg_value_entry.pack(side=tk.LEFT, padx=5)
+
+        # Registry Buttons
+        reg_buttons_frame = ttk.Frame(registry_frame)
+        reg_buttons_frame.pack(fill=tk.X, pady=5)
+        ttk.Button(reg_buttons_frame, 
+                  text="Read Registry", 
+                  command=self.read_registry,
+                  style="Blue.TButton").pack(side=tk.LEFT, padx=5)
+        ttk.Button(reg_buttons_frame, 
+                  text="Edit Registry", 
+                  command=self.edit_registry,
+                  style="Red.TButton").pack(side=tk.LEFT, padx=5)
+
         # Storage Paths Section
         paths_frame = ttk.LabelFrame(settings_frame, text="Đường dẫn lưu trữ", padding="20")
         paths_frame.pack(fill=tk.X, pady=(20, 30))
@@ -1026,14 +1102,40 @@ class MainApplication(tk.Tk):
     def create_backup(self):
         try:
             app_name = self.app_var.get()
-            self.file_manager.set_app(app_name)
-            backup_path = self.file_manager.create_backup()
-            show_message(self, "Success", f"Backup created at:\n{backup_path}", "success")
-            self.update_status("Backup created successfully")
+            
+            # Kiểm tra xem có ID để backup không
+            if not self.current_ids:
+                # Thử đọc ID hiện tại
+                self.read_current_ids()
+                if not self.current_ids:
+                    raise ValueError("Không có ID nào để backup. Vui lòng tạo hoặc đọc ID trước.")
+            
+            # Lấy đường dẫn backup từ settings
+            backup_path = self.settings_manager.get_setting("id_backup_path")
+            if not backup_path:
+                backup_path = os.path.join(os.path.expanduser("~"), "id_backups")
+            
+            # Đảm bảo thư mục tồn tại
+            os.makedirs(backup_path, exist_ok=True)
+            
+            # Tạo tên file backup với timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_file = os.path.join(backup_path, f"{app_name}_backup_{timestamp}.json")
+            
+            # Lưu vào file backup
+            with open(backup_file, 'w', encoding='utf-8') as f:
+                json.dump(self.current_ids, f, indent=4, ensure_ascii=False)
+            
+            # Kiểm tra file backup có dữ liệu không
+            if os.path.getsize(backup_file) > 0:
+                show_message(self, "Thành công", f"Đã tạo backup tại:\n{backup_file}", "success")
+                self.update_status("Tạo backup thành công")
+            else:
+                raise ValueError("File backup được tạo nhưng không có dữ liệu")
             
         except Exception as e:
-            show_message(self, "Error", str(e), "error")
-            self.update_status("Error creating backup")
+            show_message(self, "Lỗi", str(e), "error")
+            self.update_status("Lỗi khi tạo backup")
     
     def copy_to_clipboard(self, key):
         if self.current_ids and key in self.current_ids:
@@ -1232,6 +1334,225 @@ class MainApplication(tk.Tk):
     def run(self):
         self.mainloop()
 
+    def read_registry(self):
+        """Đọc giá trị từ registry path được chỉ định"""
+        try:
+            # Mở registry key
+            key_path = self.reg_path_var.get()
+            value_name = self.reg_value_var.get()
+            
+            registry_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key_path, 0,
+                                        winreg.KEY_READ | winreg.KEY_WOW64_64KEY)
+            
+            # Đọc giá trị
+            value, regtype = winreg.QueryValueEx(registry_key, value_name)
+            winreg.CloseKey(registry_key)
+            
+            # Hiển thị kết quả
+            show_message(self, "Registry Value", 
+                        f"Path: {key_path}\nName: {value_name}\nValue: {value}",
+                        "info")
+            
+        except WindowsError as e:
+            show_message(self, "Error", f"Không thể đọc registry: {str(e)}", "error")
+
+    def edit_registry(self):
+        """Sửa giá trị trong registry"""
+        try:
+            # Lấy thông tin từ UI
+            key_path = self.reg_path_var.get()
+            value_name = self.reg_value_var.get()
+            
+            # Đọc giá trị hiện tại
+            registry_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key_path, 0,
+                                        winreg.KEY_READ | winreg.KEY_WOW64_64KEY)
+            current_value, regtype = winreg.QueryValueEx(registry_key, value_name)
+            winreg.CloseKey(registry_key)
+            
+            # Hiển thị dialog để nhập giá trị mới
+            new_value = tk.simpledialog.askstring(
+                "Edit Registry",
+                f"Current value: {current_value}\nEnter new value:",
+                initialvalue=current_value
+            )
+            
+            if new_value is not None:  # Nếu người dùng không cancel
+                # Xác nhận thay đổi
+                if messagebox.askyesno("Confirm",
+                                     f"Are you sure you want to change the value to:\n{new_value}"):
+                    # Mở registry với quyền write
+                    registry_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key_path, 0,
+                                                winreg.KEY_SET_VALUE | winreg.KEY_WOW64_64KEY)
+                    winreg.SetValueEx(registry_key, value_name, 0, winreg.REG_SZ, new_value)
+                    winreg.CloseKey(registry_key)
+                    show_message(self, "Success", "Registry value updated successfully!", "info")
+                    
+        except WindowsError as e:
+            show_message(self, "Error", f"Không thể cập nhật registry: {str(e)}", "error")
+
+    def browse_file(self):
+        """Mở dialog chọn file"""
+        from tkinter import filedialog
+        filename = filedialog.askopenfilename(
+            initialdir=self.file_path_var.get(),
+            title="Select file",
+            filetypes=(("JSON files", "*.json"), ("All files", "*.*"))
+        )
+        if filename:
+            self.file_path_var.set(filename)
+
+    def view_file(self):
+        """Xem nội dung file"""
+        try:
+            file_path = self.file_path_var.get()
+            
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"File không tồn tại: {file_path}")
+                
+            # Đọc và hiển thị nội dung file
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                
+            # Tạo dialog để hiển thị nội dung
+            dialog = tk.Toplevel(self)
+            dialog.title(f"File Content - {os.path.basename(file_path)}")
+            dialog.geometry("800x600")
+            
+            # Thêm text widget với scrollbar
+            text_frame = ttk.Frame(dialog)
+            text_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            
+            scrollbar = ttk.Scrollbar(text_frame)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            
+            text_widget = tk.Text(text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set)
+            text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            
+            scrollbar.config(command=text_widget.yview)
+            
+            # Insert content
+            text_widget.insert(tk.END, content)
+            text_widget.config(state=tk.DISABLED)  # Make read-only
+            
+        except Exception as e:
+            show_message(self, "Error", f"Không thể đọc file: {str(e)}", "error")
+
+    def edit_file(self):
+        """Sửa nội dung file"""
+        try:
+            file_path = self.file_path_var.get()
+            
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"File không tồn tại: {file_path}")
+                
+            # Đọc nội dung file
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                
+            # Tạo dialog để sửa nội dung
+            dialog = tk.Toplevel(self)
+            dialog.title(f"Edit File - {os.path.basename(file_path)}")
+            dialog.geometry("800x600")
+            
+            # Thêm text widget với scrollbar
+            text_frame = ttk.Frame(dialog)
+            text_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            
+            scrollbar = ttk.Scrollbar(text_frame)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            
+            text_widget = tk.Text(text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set)
+            text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            
+            scrollbar.config(command=text_widget.yview)
+            
+            # Insert content
+            text_widget.insert(tk.END, content)
+            
+            # Save button
+            def save_changes():
+                try:
+                    new_content = text_widget.get("1.0", tk.END)
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(new_content)
+                    show_message(self, "Success", "File saved successfully!", "info")
+                    dialog.destroy()
+                except Exception as e:
+                    show_message(self, "Error", f"Không thể lưu file: {str(e)}", "error")
+            
+            save_btn = ttk.Button(dialog, text="Save", command=save_changes)
+            save_btn.pack(pady=10)
+            
+        except Exception as e:
+            show_message(self, "Error", f"Không thể sửa file: {str(e)}", "error")
+
+    def browse_backup_path(self, backup_type):
+        """Chọn đường dẫn sao lưu cho ID hoặc GUID"""
+        from tkinter import filedialog
+        folder_path = filedialog.askdirectory(title=f"Select {backup_type.upper()} backup folder")
+        if folder_path:
+            if backup_type == "id":
+                self.id_backup_path_var.set(folder_path)
+                self.settings_manager.set_setting("id_backup_path", folder_path)
+                # Tạo thư mục nếu chưa tồn tại
+                os.makedirs(folder_path, exist_ok=True)
+                print(f"[DEBUG] Đã cập nhật đường dẫn backup ID: {folder_path}")
+            else:
+                self.guid_backup_path_var.set(folder_path)
+                self.settings_manager.set_setting("guid_backup_path", folder_path)
+                # Tạo thư mục nếu chưa tồn tại
+                os.makedirs(folder_path, exist_ok=True)
+                print(f"[DEBUG] Đã cập nhật đường dẫn backup GUID: {folder_path}")
+            
+            # Lưu settings ngay lập tức
+            self.settings_manager.save_settings()
+            show_message(self, "Thành công", f"Đã cập nhật đường dẫn backup {backup_type.upper()}", "success")
+
+    def apply_font_size(self, size):
+        """Áp dụng font size mới cho toàn bộ ứng dụng"""
+        try:
+            # Chuyển đổi size thành số
+            font_size = int(size)
+            
+            # Cập nhật style cho từng loại widget
+            self.style.configure(".", font=("Tahoma", font_size))
+            self.style.configure("TButton", font=("Tahoma", font_size))
+            self.style.configure("TLabel", font=("Tahoma", font_size))
+            self.style.configure("Title.TLabel", font=("Tahoma", font_size + 16, "bold"))
+            self.style.configure("Header.TLabel", font=("Tahoma", font_size + 6, "bold"))
+            self.style.configure("Info.TLabel", font=("Tahoma", font_size))
+            self.style.configure("ID.TLabel", font=("Consolas", font_size + 1))
+            self.style.configure("Description.TLabel", font=("Tahoma", font_size))
+            
+            # Lưu vào settings
+            self.settings_manager.set_setting("font_size", str(font_size))
+            
+        except ValueError as e:
+            print(f"Lỗi khi áp dụng font size: {str(e)}")
+
+    def apply_window_size(self, size_str):
+        """Áp dụng kích thước cửa sổ mới"""
+        try:
+            # Kiểm tra format hợp lệ (width x height)
+            if "x" not in size_str:
+                raise ValueError("Định dạng kích thước không hợp lệ")
+                
+            width, height = map(int, size_str.split("x"))
+            if width < 1200 or height < 800:
+                raise ValueError("Kích thước không được nhỏ hơn 1200x800")
+                
+            # Áp dụng kích thước mới
+            self.geometry(f"{width}x{height}")
+            
+            # Lưu vào settings
+            self.settings_manager.set_setting("window_size", size_str)
+            
+            # Center window
+            self.center_window()
+            
+        except Exception as e:
+            print(f"Lỗi khi áp dụng window size: {str(e)}")
+
 def update_storage_file(new_ids):
     # Đường dẫn file storage.json
     storage_path = os.path.expanduser(r'~\AppData\Roaming\Cursor\User\globalStorage\storage.json')
@@ -1262,6 +1583,12 @@ def update_storage_file(new_ids):
 
 if __name__ == "__main__":
     try:
+        # Ẩn cửa sổ console
+        if not sys.argv[-1] == 'asadmin':
+            import win32gui, win32con
+            hwnd = win32gui.GetForegroundWindow()
+            win32gui.ShowWindow(hwnd, win32con.SW_HIDE)
+        
         # Kiểm tra quyền admin khi khởi động
         if not is_admin():
             # Hỏi người dùng có muốn chạy với quyền admin không
