@@ -1,0 +1,7 @@
+customtkinter
+pillow
+colorama
+requests
+psutil
+python-dotenv
+pywin32; platform_system == "Windows"
