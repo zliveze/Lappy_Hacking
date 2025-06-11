@@ -1,0 +1,74 @@
+{
+  "app": {
+    "name": "Lappy Lab",
+    "version": "4.1",
+    "description": "Công cụ quản lý Cursor với giao diện tiếng Việt"
+  },
+  "ui": {
+    "title": "Lappy Lab 4.1",
+    "account_info": "Thông tin tài khoản",
+    "usage_info": "Thông tin sử dụng",
+    "email": "Email",
+    "package": "Gói",
+    "remaining": "Còn lại",
+    "fast_response": "Fast Response",
+    "slow_response": "Slow Response",
+    "log": "Log",
+    "system": "Hệ thống",
+    "paths": "Đường dẫn",
+    "files": "Files",
+    "settings": "Settings",
+    "storage": "Storage",
+    "refresh": "Làm mới",
+    "export": "Xuất cấu hình",
+    "close": "Đóng"
+  },
+  "features": {
+    "reset_machine_id": "Reset Machine ID",
+    "disable_auto_update": "Tắt tự động cập nhật Cursor",
+    "reset_full_cursor": "Reset Full Cursor",
+    "bypass_version_check": "Bỏ qua kiểm tra phiên bản",
+    "show_config": "Hiển thị cấu hình",
+    "bypass_token_limit": "Bỏ qua giới hạn token"
+  },
+  "messages": {
+    "loading": "Đang tải...",
+    "success": "Thành công",
+    "error": "Lỗi",
+    "warning": "Cảnh báo",
+    "confirm": "Xác nhận",
+    "cancel": "Hủy",
+    "yes": "Có",
+    "no": "Không",
+    "ok": "OK",
+    "not_found": "Không tìm thấy",
+    "no_data": "Không có dữ liệu",
+    "unlimited": "Không giới hạn",
+    "days": "ngày",
+    "cursor_running": "Cursor đang chạy, đang tắt...",
+    "cursor_stopped": "Đã tắt Cursor",
+    "backup_created": "Đã tạo backup",
+    "operation_cancelled": "Đã hủy thao tác",
+    "reset_warning": "⚠️ CẢNH BÁO: Thao tác này sẽ xóa toàn bộ dữ liệu Cursor!\nBạn có chắc chắn muốn tiếp tục?"
+  },
+  "status": {
+    "processing": "🔄 Đang xử lý...",
+    "success": "✅ Thành công!",
+    "failed": "❌ Thất bại!",
+    "info": "ℹ️ Thông tin:",
+    "exists": "✓ Tồn tại",
+    "not_exists": "✗ Không tồn tại",
+    "enabled": "✓ Đã bật",
+    "disabled": "✗ Đã tắt"
+  },
+  "errors": {
+    "file_not_found": "File không tồn tại",
+    "permission_denied": "Không có quyền truy cập",
+    "cursor_not_found": "Không tìm thấy Cursor",
+    "backup_failed": "Tạo backup thất bại",
+    "operation_failed": "Thao tác thất bại",
+    "invalid_data": "Dữ liệu không hợp lệ",
+    "network_error": "Lỗi kết nối mạng",
+    "timeout": "Hết thời gian chờ"
+  }
+}

@@ -1,24 +1,41 @@
-pillow==10.2.0
-requests==2.31.0
-selenium==4.27.1
-urllib3==2.3.0
-beautifulsoup4==4.12.3
-python-dotenv==1.0.1
-undetected-chromedriver==3.5.5
-webdriver-manager==4.0.2
-cryptography==42.0.5
-certifi==2024.2.2
-charset-normalizer==3.3.2
-idna==3.6
-attrs>=23.2.0
-h11==0.14.0
-outcome==1.3.0.post0
-sniffio==1.3.1
-sortedcontainers==2.4.0
-trio==0.25.0
-trio-websocket==0.11.1
-wsproto==1.2.0
-PySocks==1.7.1
-websocket-client==1.8.0
-packaging==23.2
-pywin32==306
+# Requirements for Lappy Lab 4.1
+# Cursor Management Tool
+
+# Core dependencies
+colorama>=0.4.6
+requests>=2.28.0
+psutil>=5.8.0
+watchdog>=2.1.0
+python-dotenv>=1.0.0
+
+# Browser automation
+DrissionPage>=4.0.0
+selenium>=4.0.0
+webdriver_manager>=3.8.0
+
+# Multi-language support
+arabic-reshaper>=2.1.0
+python-bidi>=0.4.2
+
+# Data generation
+faker>=18.0.0
+
+# System specific
+pywin32; platform_system == "Windows"
+
+# GUI (tkinter is built-in with Python)
+# No additional GUI dependencies needed
+
+# JSON handling (built-in with Python)
+# No additional JSON dependencies needed
+
+# File operations (built-in with Python)
+# No additional file operation dependencies needed
+
+# Optional: For building executable
+# pyinstaller>=5.0.0
+
+# Development dependencies (optional)
+# pytest>=7.0.0
+# black>=22.0.0
+# flake8>=4.0.0

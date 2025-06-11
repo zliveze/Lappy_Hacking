@@ -1,7 +1,8 @@
-# main.py - Lappy Lab 4.1 Entry Point
+# main.pyw - Lappy Lab 4.1 Entry Point (No Console Window)
 import sys
 import os
 import ctypes
+import subprocess
 
 # Thêm thư mục src vào Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -23,28 +24,40 @@ def run_as_admin():
             python_exe = sys.executable
             script_path = os.path.abspath(__file__)
 
-            # Chạy lại với quyền admin (0 = ẩn cửa sổ)
+            # Chạy lại với quyền admin (sử dụng pythonw.exe để ẩn console)
+            pythonw_exe = python_exe.replace('python.exe', 'pythonw.exe')
+            if not os.path.exists(pythonw_exe):
+                pythonw_exe = python_exe  # Fallback nếu không tìm thấy pythonw.exe
+
             ctypes.windll.shell32.ShellExecuteW(
                 None,
                 "runas",
-                python_exe,
+                pythonw_exe,
                 f'"{script_path}"',
                 None,
-                0
+                0  # SW_HIDE - ẩn cửa sổ
             )
             return False
         except Exception as e:
-            print(f"Không thể chạy với quyền admin: {e}")
-            return True  # Tiếp tục chạy bình thường
+            # Nếu có lỗi, thử chạy với python.exe thông thường
+            try:
+                ctypes.windll.shell32.ShellExecuteW(
+                    None,
+                    "runas",
+                    python_exe,
+                    f'"{script_path}"',
+                    None,
+                    0  # SW_HIDE - ẩn cửa sổ
+                )
+                return False
+            except:
+                return True  # Tiếp tục chạy bình thường
 
 def main():
     """Entry point chính của ứng dụng"""
     # Kiểm tra và yêu cầu quyền admin nếu cần
     if not run_as_admin():
-        print("Đang khởi động lại với quyền Administrator...")
         sys.exit(0)
-
-    print("✅ Đang chạy với quyền Administrator")
 
     try:
         from gui.main_window import LappyLabApp
@@ -58,18 +71,19 @@ def main():
         app.run()
 
     except Exception as e:
-        print(f"Lỗi khởi tạo ứng dụng: {str(e)}")
-        import traceback
-        traceback.print_exc()
-
         # Hiển thị lỗi bằng messagebox nếu có thể
         try:
             import tkinter.messagebox as messagebox
             messagebox.showerror("Lỗi", f"Lỗi khởi tạo ứng dụng: {str(e)}")
         except:
-            pass
+            # Nếu không thể hiển thị messagebox, ghi vào file log
+            try:
+                with open('error.log', 'w', encoding='utf-8') as f:
+                    f.write(f"Lỗi khởi tạo ứng dụng: {str(e)}\n")
+                    import traceback
+                    traceback.print_exc(file=f)
+            except:
+                pass
 
 if __name__ == "__main__":
     main()
-
-
