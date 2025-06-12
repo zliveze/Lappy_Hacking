@@ -24,7 +24,7 @@ faker>=18.0.0
 pywin32; platform_system == "Windows"
 
 # GUI (tkinter is built-in with Python)
-# No additional GUI dependencies needed
+Pillow>=9.0.0  # For image processing and icon loading
 
 # JSON handling (built-in with Python)
 # No additional JSON dependencies needed

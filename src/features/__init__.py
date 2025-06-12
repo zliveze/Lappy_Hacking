@@ -11,6 +11,20 @@ from .bypass_version_check import bypass_version_check
 from .bypass_token_limit import bypass_token_limit
 from .show_config import show_config
 
+# Import tính năng Email
+try:
+    from .email_generator import generate_extended_email, generate_multiple_emails
+    EMAIL_AVAILABLE = True
+except ImportError:
+    EMAIL_AVAILABLE = False
+
+# Import tính năng TempMail API
+try:
+    from .tempmail_api import TempMailAPI
+    TEMPMAIL_AVAILABLE = True
+except ImportError:
+    TEMPMAIL_AVAILABLE = False
+
 # Import các tính năng Augment Code
 try:
     from .augment_utils import (
@@ -39,6 +53,19 @@ __all__ = [
     'bypass_token_limit',
     'show_config'
 ]
+
+# Thêm Email functions nếu có
+if EMAIL_AVAILABLE:
+    __all__.extend([
+        'generate_extended_email',
+        'generate_multiple_emails'
+    ])
+
+# Thêm TempMail API nếu có
+if TEMPMAIL_AVAILABLE:
+    __all__.extend([
+        'TempMailAPI'
+    ])
 
 # Thêm Augment functions nếu có
 if AUGMENT_AVAILABLE:
