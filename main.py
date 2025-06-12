@@ -1,4 +1,4 @@
-# main.py - Lappy Lab 4.1 Entry Point
+# main.py - Lappy Lab 4.1 Entry Point (Console Version)
 import sys
 import os
 import ctypes
@@ -23,14 +23,14 @@ def run_as_admin():
             python_exe = sys.executable
             script_path = os.path.abspath(__file__)
 
-            # Chạy lại với quyền admin (0 = ẩn cửa sổ)
+            # Chạy lại với quyền admin
             ctypes.windll.shell32.ShellExecuteW(
                 None,
                 "runas",
                 python_exe,
                 f'"{script_path}"',
                 None,
-                0
+                1  # SW_SHOWNORMAL - hiển thị console
             )
             return False
         except Exception as e:
@@ -38,7 +38,11 @@ def run_as_admin():
             return True  # Tiếp tục chạy bình thường
 
 def main():
-    """Entry point chính của ứng dụng"""
+    """Entry point chính của ứng dụng (Console Version)"""
+    print("🚀 Lappy Lab 4.1 - Console Version")
+    print("💡 Để chạy không hiển thị CMD, sử dụng: start_lappy.vbs hoặc main.pyw")
+    print()
+
     # Kiểm tra và yêu cầu quyền admin nếu cần
     if not run_as_admin():
         print("Đang khởi động lại với quyền Administrator...")
@@ -71,5 +75,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

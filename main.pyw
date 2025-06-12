@@ -2,7 +2,18 @@
 import sys
 import os
 import ctypes
-import subprocess
+
+# Ẩn console window ngay từ đầu
+if sys.platform == "win32":
+    import ctypes.wintypes
+    kernel32 = ctypes.windll.kernel32
+    user32 = ctypes.windll.user32
+
+    # Lấy handle của console window hiện tại
+    console_window = kernel32.GetConsoleWindow()
+    if console_window:
+        # Ẩn console window
+        user32.ShowWindow(console_window, 0)  # SW_HIDE
 
 # Thêm thư mục src vào Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -15,7 +26,7 @@ def is_admin():
         return False
 
 def run_as_admin():
-    """Chạy lại script với quyền admin"""
+    """Chạy lại script với quyền admin mà không hiển thị console"""
     if is_admin():
         return True
     else:
@@ -24,34 +35,28 @@ def run_as_admin():
             python_exe = sys.executable
             script_path = os.path.abspath(__file__)
 
-            # Chạy lại với quyền admin (sử dụng pythonw.exe để ẩn console)
+            # Ưu tiên sử dụng pythonw.exe để ẩn console hoàn toàn
             pythonw_exe = python_exe.replace('python.exe', 'pythonw.exe')
             if not os.path.exists(pythonw_exe):
-                pythonw_exe = python_exe  # Fallback nếu không tìm thấy pythonw.exe
+                # Nếu không có pythonw.exe, tìm trong cùng thư mục
+                python_dir = os.path.dirname(python_exe)
+                pythonw_exe = os.path.join(python_dir, 'pythonw.exe')
+                if not os.path.exists(pythonw_exe):
+                    pythonw_exe = python_exe  # Fallback cuối cùng
 
+            # Chạy lại với quyền admin và ẩn hoàn toàn
             ctypes.windll.shell32.ShellExecuteW(
                 None,
                 "runas",
                 pythonw_exe,
                 f'"{script_path}"',
                 None,
-                0  # SW_HIDE - ẩn cửa sổ
+                0  # SW_HIDE - ẩn cửa sổ hoàn toàn
             )
             return False
-        except Exception as e:
-            # Nếu có lỗi, thử chạy với python.exe thông thường
-            try:
-                ctypes.windll.shell32.ShellExecuteW(
-                    None,
-                    "runas",
-                    python_exe,
-                    f'"{script_path}"',
-                    None,
-                    0  # SW_HIDE - ẩn cửa sổ
-                )
-                return False
-            except:
-                return True  # Tiếp tục chạy bình thường
+        except Exception:
+            # Nếu có lỗi, vẫn tiếp tục chạy nhưng ẩn console
+            return True
 
 def main():
     """Entry point chính của ứng dụng"""

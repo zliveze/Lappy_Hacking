@@ -39,27 +39,39 @@ pip install -r requirements.txt
 
 ### 3. Chạy ứng dụng
 
-#### Cách 1: Chạy với quyền Admin (Khuyến nghị)
+#### 🎯 Chạy KHÔNG hiển thị cửa sổ CMD (Khuyến nghị)
 ```bash
-# Windows - Chạy file batch với quyền admin
-run_admin.bat
+# Cách tốt nhất - Hoàn toàn ẩn
+start_lappy.vbs
 
-# Hoặc tạo shortcut desktop
-create_shortcut.bat
+# PowerShell ẩn
+run_hidden.ps1
+
+# Batch file ẩn
+run_silent.bat
+
+# Python file trực tiếp
+main.pyw
 ```
 
-#### Cách 2: Chạy Python script
+#### 🖥️ Chạy VỚI hiển thị cửa sổ CMD (Debug)
 ```bash
-# Tự động yêu cầu quyền admin khi cần
+# Console version với thông tin chi tiết
+python main.py
+
+# Alternative runner
 python run.py
 
-# Hoặc chạy trực tiếp
-python main.py
+# Batch file với admin
+run_admin.bat
 ```
 
-#### Cách 3: Sử dụng shortcut
-1. Chạy `create_shortcut.bat` để tạo shortcut trên Desktop
-2. Double-click shortcut "Lappy Lab 4.1 (Admin)" để chạy
+#### 📋 Thứ tự ưu tiên
+1. **start_lappy.vbs** ← Tốt nhất (hoàn toàn ẩn)
+2. **run_hidden.ps1** ← PowerShell ẩn
+3. **run_silent.bat** ← Batch ẩn
+4. **main.pyw** ← Python ẩn
+5. **main.py** ← Console debug
 
 ## Sử dụng
 
@@ -184,11 +196,39 @@ Lappy_Hacking/
 - **Locales**: Đa ngôn ngữ
 - **Docs**: Tài liệu API và hướng dẫn
 
-### Build executable
+### 🔨 Build executable
+
+#### Cách 1: Quick Build (Khuyến nghị)
+```bash
+# Windows - Batch file tự động
+build_quick.bat
+
+# PowerShell - Quick mode
+.\build_advanced.ps1 -Quick
+```
+
+#### Cách 2: Advanced Build
+```bash
+# Python script với menu
+python build.py
+
+# PowerShell với tùy chọn
+.\build_advanced.ps1 -Clean          # Build + Clean
+.\build_advanced.ps1 -Installer      # Build + Installer
+.\build_advanced.ps1 -Help           # Xem help
+```
+
+#### Cách 3: Manual PyInstaller
 ```bash
 pip install pyinstaller
-pyinstaller --onefile --windowed main.py
+pyinstaller --onefile --windowed --icon=public/image/icon.ico main.pyw
 ```
+
+#### 📦 Kết quả build:
+- **File executable**: `dist/LappyLab.exe`
+- **Icon**: Tự động sử dụng `public/image/icon.ico`
+- **Kích thước**: ~15-25 MB (tùy dependencies)
+- **Console**: Ẩn hoàn toàn (không hiển thị CMD)
 
 ## Changelog
 
